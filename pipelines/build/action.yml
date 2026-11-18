@@ -1,0 +1,99 @@
+name: Build, test and pack
+description: Check formatting, build, test both frameworks, pack and smoke-test the Carbonite packages.
+inputs:
+  version:
+    description: Release version taken from the Git tag; otherwise Directory.Build.props.
+    required: false
+  artifact-name:
+    description: Prefix of the uploaded artifacts (-packages, -diagnostics); unique per job of a run.
+    required: false
+    default: build
+runs:
+  using: composite
+  steps:
+    - name: Resolve the package version
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        version="${RELEASE_VERSION:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)}"
+        number='(0|[1-9][0-9]*)'
+        identifier='(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+        if [[ ! "$version" =~ ^$number\.$number\.$number(-$identifier(\.$identifier)*)?$ ]]; then
+          echo "::error::Use a SemVer version such as 0.1.0 or 0.1.0-alpha.1, without v or build metadata (got '$version')."
+          exit 1
+        fi
+        heading="## ${version} - "
+        if [[ -n "${RELEASE_VERSION}" ]]; then
+          if [[ "${GITHUB_REF_TYPE}" != tag || "${version}" != "${GITHUB_REF_NAME}" ]]; then
+            echo "::error::The release version must match the Git tag."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "::error::Release tags must point to a commit on main."
+            exit 1
+          fi
+          if ! grep -Eq "^${heading//./\\.}[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]*$" CHANGELOG.md; then
+            echo "::error::Date the CHANGELOG entry '## ${version} - YYYY-MM-DD' before tagging."
+            exit 1
+          fi
+        else
+          if ! grep -Fq "${heading}" CHANGELOG.md; then
+            echo "::error::Add a CHANGELOG entry '## ${version} - Unreleased'."
+            exit 1
+          fi
+          # Branch artifacts must never carry a version already published on nuget.org.
+          index="$(curl -fsS https://api.nuget.org/v3-flatcontainer/thedotside.carbonite/index.json 2> /dev/null || true)"
+          lowercase="$(printf '%s' "${version}" | tr '[:upper:]' '[:lower:]')"
+          if grep -Fq "\"${lowercase}\"" <<< "${index}"; then
+            echo "::error::${version} is already published: bump Version in Directory.Build.props."
+            exit 1
+          fi
+        fi
+        echo "PACKAGE_VERSION=${version}" >> "${GITHUB_ENV}"
+    - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+      with:
+        global-json-file: global.json
+        # The SDK from global.json builds both frameworks; .NET 10 is installed for its test runs.
+        dotnet-version: '10.0.x'
+        cache: true
+        cache-dependency-path: '**/packages.lock.json'
+    - name: Restore
+      shell: bash
+      run: dotnet restore --locked-mode
+    - name: Restore local tools
+      shell: bash
+      run: dotnet tool restore
+    - name: Check formatting
+      shell: bash
+      run: dotnet csharpier check .
+    - name: Build
+      shell: bash
+      run: dotnet build --no-restore "-p:Version=${PACKAGE_VERSION}"
+    # CI=true is set by GitHub: Carbonite runs in strict mode (no snapshot is ever created or
+    # updated) and ContinuousIntegrationBuild rewrites source paths, which the tests must survive.
+    - name: Test
+      shell: bash
+      run: dotnet test --no-build --report-trx --results-directory artifacts/test-results
+    - name: Pack
+      shell: bash
+      run: bash eng/pack.sh "${PACKAGE_VERSION}"
+    - name: Use the packages in throwaway projects
+      shell: bash
+      run: bash eng/package-smoke.sh "${PACKAGE_VERSION}"
+    # Packages alone, so that the archives sit at the root of the artifact for the publish job.
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact-name }}-packages
+        if-no-files-found: error
+        path: artifacts/packages/*
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      if: always()
+      with:
+        name: ${{ inputs.artifact-name }}-diagnostics
+        if-no-files-found: ignore
+        path: |
+          artifacts/test-results/
+          artifacts/smoke-logs/
+          **/__snapshots__/*.received.*

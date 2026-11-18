@@ -1,0 +1,72 @@
+name: publish-nuget
+# Inactive until the maintainers configure it (see docs/publication.md): the `nuget` environment
+# with its reviewers, the NUGET_USER repository variable and a NuGet trusted publishing policy.
+on:
+  push:
+    tags: ['[0-9]*.[0-9]*.[0-9]*']
+permissions:
+  contents: read
+concurrency:
+  group: publish-nuget
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build, test, pack and smoke-test the tagged version
+        uses: ./pipelines/build
+        with:
+          version: ${{ github.ref_name }}
+          artifact-name: release
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Required reviewers and the tag rule are set on this environment in the repository settings.
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-packages
+          path: release
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: Check the release archives
+        env:
+          VERSION: ${{ github.ref_name }}
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${NUGET_USER}" ]]; then
+            echo "::error::Configure the NUGET_USER repository variable (docs/publication.md)."
+            exit 1
+          fi
+          for id in TheDotSide.Carbonite TheDotSide.Carbonite.TUnit; do
+            test -f "release/${id}.${VERSION}.nupkg"
+            test -f "release/${id}.${VERSION}.snupkg"
+          done
+      - name: Authenticate to NuGet with OIDC
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Push the core first, then the adapter that depends on it
+        env:
+          VERSION: ${{ github.ref_name }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          for id in TheDotSide.Carbonite TheDotSide.Carbonite.TUnit; do
+            # The .snupkg next to each archive is pushed with it, to the NuGet symbol server.
+            dotnet nuget push "release/${id}.${VERSION}.nupkg" --api-key "${NUGET_API_KEY}" \
+              --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done

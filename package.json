@@ -1,0 +1,9 @@
+{
+  "name": "carbonite-tooling",
+  "private": true,
+  "description": "Commit message checks of ADR OUT-08 and TST-11; not part of the .NET packages.",
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4"
+  }
+}

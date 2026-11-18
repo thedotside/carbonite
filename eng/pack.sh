@@ -11,7 +11,15 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="${1:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$repo/Directory.Build.props" | head -n 1)}"
 frameworks="${CARBONITE_FRAMEWORKS:-net10.0 net11.0}"
 output="$repo/artifacts/packages"
-python="$(command -v python3 || command -v python)"
+# The first Python 3 that really runs: on Windows, "python3" can be a Store shortcut that does not.
+python=""
+for candidate in python3 python; do
+  if "$candidate" -c "import sys, zipfile; sys.exit(sys.version_info < (3, 8))" > /dev/null 2>&1; then
+    python="$candidate"
+    break
+  fi
+done
+[[ -n "$python" ]] || { echo "eng/pack.sh needs Python 3.8 or later to inspect the packages." >&2; exit 1; }
 
 pack_arguments=(-c Release -o "$output" "-p:Version=$version")
 if [[ -n "${CARBONITE_FRAMEWORKS:-}" ]]; then

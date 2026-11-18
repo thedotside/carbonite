@@ -1,0 +1,8 @@
+#!/bin/sh
+# Enabled by eng/setup.sh. Refuses a commit whose C# or MSBuild files are not formatted by CSharpier.
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+if ! dotnet csharpier check . > /dev/null 2>&1; then
+  echo "CSharpier: some files are not formatted. Run 'dotnet csharpier format .', review, then commit again." >&2
+  exit 1
+fi
