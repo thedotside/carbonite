@@ -1,3 +1,4 @@
+using TheDotSide.Carbonite.Engine;
 using TheDotSide.Carbonite.Tests.Support;
 
 namespace TheDotSide.Carbonite.Tests;
@@ -8,6 +9,12 @@ public class SnapshotTests
     [Test]
     public async Task Match_passes_for_the_verified_value_and_throws_with_paths_for_another()
     {
+        // With SNAPSHOT_UPDATE=1 the mismatch below would be accepted instead of reported.
+        Skip.When(
+            SnapshotEnvironment.FromProcess().UpdateRequested,
+            "Needs a real mismatch; SNAPSHOT_UPDATE=1 would accept it."
+        );
+
         using var temp = new TempDirectory();
         var source = temp.Combine("PanierTests.cs");
         await File.WriteAllTextAsync(source, "// tests");

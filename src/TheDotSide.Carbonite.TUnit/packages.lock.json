@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Meziantou.Analyzer": {
+        "type": "Direct",
+        "requested": "[3.0.326, )",
+        "resolved": "3.0.326",
+        "contentHash": "cHGMh3DK3WcMi0mRnj0IKAqAVqYncMCBM9tcmS0QXz9DXp+xE+JiiB9OF8lC5jVEzaX3WqSn/UhhUXk04WsXaA=="
+      },
+      "TUnit.Assertions": {
+        "type": "Direct",
+        "requested": "[1.40.0, )",
+        "resolved": "1.40.0",
+        "contentHash": "Wy8UU/vFxBPuWCUIIbNH+liRf0uqT7Sgu/CN96kSWY6mEmagcoBaBELElovIszqG3/IqbeoSA6FzFJAspLdAdw=="
+      },
+      "TUnit.Core": {
+        "type": "Direct",
+        "requested": "[1.40.0, )",
+        "resolved": "1.40.0",
+        "contentHash": "lu1325zRRlJvhm2vtlkBYgiTMpLyDaRdjnFOHNEWuHfttgjjEj1IsNHA1dM3DP3gLsmwqtWPQWVZOVyxXbdzbQ=="
+      },
+      "thedotside.carbonite": {
+        "type": "Project"
+      }
+    }
+  }
+}
