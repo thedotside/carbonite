@@ -3,7 +3,7 @@ namespace TheDotSide.Carbonite.Text;
 /// <summary>Puts snapshot text in the single form that is stored and compared.</summary>
 internal static class TextNormalizer
 {
-    private const char ByteOrderMark = '﻿';
+    private const char ByteOrderMark = '\uFEFF';
 
     /// <summary>
     /// Removes a leading byte order mark, converts CRLF line endings to LF and trims trailing
