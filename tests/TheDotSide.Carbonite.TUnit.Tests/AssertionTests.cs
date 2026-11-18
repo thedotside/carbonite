@@ -1,3 +1,4 @@
+using System.Globalization;
 using TheDotSide.Carbonite.Engine;
 using TheDotSide.Carbonite.Naming;
 using TUnit.Assertions.Exceptions;
@@ -36,8 +37,10 @@ public class AssertionTests
         );
 
         // A verified file with another value, written by the test so that nothing committed is
-        // wrong on purpose. On CI the compiler rewrites source paths to /_/...: resolve the
-        // folder like Carbonite does.
+        // wrong on purpose. Its name carries the framework: the net10.0 and net11.0 runs execute
+        // at the same time and must not delete each other's file. On CI the compiler rewrites
+        // source paths to /_/...: resolve the folder like Carbonite does.
+        var name = string.Create(CultureInfo.InvariantCulture, $"net{Environment.Version.Major}");
         var context = new TUnitTestContextProvider().GetCurrent()!;
         var source = SourcePathResolver.Default.Resolve(
             context.SourceFilePath,
@@ -46,7 +49,7 @@ public class AssertionTests
         var stem = Path.Combine(
             Path.GetDirectoryName(source)!,
             "__snapshots__",
-            "AssertionTests.Assert_multiple_collects_a_snapshot_mismatch"
+            $"AssertionTests.Assert_multiple_collects_a_snapshot_mismatch.{name}"
         );
         var verified = stem + ".verified.json";
         var received = stem + ".received.json";
@@ -57,7 +60,7 @@ public class AssertionTests
             {
                 using (Assert.Multiple())
                 {
-                    await Assert.That(new { Total = 2 }).MatchesSnapshot();
+                    await Assert.That(new { Total = 2 }).MatchesSnapshot(name);
                     await Assert.That(new[] { 1, 1 }.Sum()).IsEqualTo(3);
                 }
             });

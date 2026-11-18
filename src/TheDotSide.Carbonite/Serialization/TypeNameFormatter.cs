@@ -61,7 +61,7 @@ internal static class TypeNameFormatter
             return Format(underlying) + "?";
         }
 
-        if (type.Name.StartsWith('<') && type.IsDefined(typeof(CompilerGeneratedAttribute), false))
+        if (type.Name is ['<', ..] && type.IsDefined(typeof(CompilerGeneratedAttribute), false))
         {
             return type.Name.Contains("AnonymousType", StringComparison.Ordinal)
                 ? "anonymous type"
