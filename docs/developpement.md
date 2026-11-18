@@ -6,7 +6,7 @@ Cette page s'adresse aux personnes qui modifient Carbonite lui-même : outils, c
 
 | Outil | Pourquoi |
 | --- | --- |
-| SDK .NET 11 | Il compile les deux cibles, `net10.0` et `net11.0`. `global.json` demande un SDK 10.0.400 ou plus récent (`rollForward: latestMajor`), mais seul un SDK 11 sait compiler `net11.0`. |
+| SDK .NET 11 | Il compile les deux cibles, `net10.0` et `net11.0`. `global.json` épingle le SDK 11.0.100 et accepte une version 11.0 plus récente (`rollForward: latestFeature`), mais pas un SDK 10. |
 | Runtime .NET 10 | Il exécute les tests `net10.0`. |
 | CSharpier 1.3.0 | Le formateur, installé comme outil local par `dotnet tool restore`. |
 | Bash, Git, Python 3.8 ou plus récent | Pour `eng/pack.sh` et `eng/package-smoke.sh`. Sous Windows, lancez-les dans Git Bash. |
@@ -139,14 +139,16 @@ Le script utilise les paquets comme le ferait une équipe, dans des projets jeta
 
 Les journaux restent dans `artifacts/smoke-logs/`.
 
-## Sans SDK .NET 11
+## Sans runtime .NET 10
 
-`CARBONITE_FRAMEWORKS` limite les deux scripts aux frameworks indiqués, pour une machine qui n'a pas le SDK .NET 11 :
+`CARBONITE_FRAMEWORKS` limite les deux scripts aux frameworks indiqués, par exemple sur une machine qui n'a pas le runtime .NET 10 :
 
 ```bash
-CARBONITE_FRAMEWORKS="net10.0" eng/pack.sh
-CARBONITE_FRAMEWORKS="net10.0" eng/package-smoke.sh
+CARBONITE_FRAMEWORKS="net11.0" eng/pack.sh
+CARBONITE_FRAMEWORKS="net11.0" eng/package-smoke.sh
 ```
+
+Le SDK .NET 11 reste nécessaire pour compiler le dépôt et fabriquer les paquets : `global.json` l'impose.
 
 ## CI, publication et décisions
 

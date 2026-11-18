@@ -4,7 +4,7 @@
 # dependency of the adapter on the core.
 #
 # Usage: eng/pack.sh [version]          (default: <Version> of Directory.Build.props)
-# CARBONITE_FRAMEWORKS="net10.0" limits the frameworks, for a machine without the .NET 11 SDK.
+# CARBONITE_FRAMEWORKS="net11.0" limits the frameworks; packing still needs the SDK of global.json.
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
