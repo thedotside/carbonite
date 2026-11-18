@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    A complete example for the documentation: a small invoicing domain and its snapshot tests.
+    A real project references the package instead of the project:
+      <PackageReference Include="TheDotSide.Carbonite.TUnit" Version="0.1.0" />
+  -->
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <ProjectReference Include="../../src/TheDotSide.Carbonite.TUnit/TheDotSide.Carbonite.TUnit.csproj" />
+  </ItemGroup>
+  <Import Project="../../src/TheDotSide.Carbonite/buildTransitive/TheDotSide.Carbonite.targets" />
+</Project>

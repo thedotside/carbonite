@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Sample.Facturation.Tests/Sample.Facturation.Tests.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/TheDotSide.Carbonite/TheDotSide.Carbonite.csproj" />
     <Project Path="src/TheDotSide.Carbonite.TUnit/TheDotSide.Carbonite.TUnit.csproj" />

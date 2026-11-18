@@ -1,0 +1,14 @@
+[
+  {
+    "Libelle": "Chaise ergonomique",
+    "Quantite": 2,
+    "PrixUnitaireHt": 149.90,
+    "TotalHt": 299.80
+  },
+  {
+    "Libelle": "Lampe de bureau",
+    "Quantite": 1,
+    "PrixUnitaireHt": 39.50,
+    "TotalHt": 39.50
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "Id": "Guid_1",
+  "Numero": "FAC-2026-0042",
+  "Pays": "FR",
+  "CreeeLe": "DateTime_1",
+  "TauxDeTva": 0.20,
+  "TotalHt": 339.30,
+  "Tva": 67.86,
+  "TotalTtc": 407.16
+}
