@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Uses the packed packages like a real team would, in throwaway projects outside the repository:
-# for each target framework, a TUnit project with TheDotSide.Carbonite.TUnit and one with the
-# core package only (generic mode). Each project goes through the snapshot lifecycle:
+# for each target framework, TUnit projects with TheDotSide.Carbonite.TUnit (TUnit at the
+# adapter's floor and at the latest version) and one with the core package only (generic mode).
+# Each TUnit project goes through the snapshot lifecycle:
 #   1. first run on a developer machine creates the snapshots;
 #   2. a deterministic build (ContinuousIntegrationBuild=true, paths rewritten to /_/) matches them;
 #   3. on CI, a missing snapshot fails;
@@ -14,7 +15,10 @@ set -euo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="${1:-$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$repo/Directory.Build.props" | head -n 1)}"
 frameworks="${CARBONITE_FRAMEWORKS:-net10.0 net11.0}"
-tunit="$(sed -n 's:.*<PackageVersion Include="TUnit" Version="\([^"]*\)".*:\1:p' "$repo/Directory.Packages.props")"
+# The adapter must work from its floor (the TUnit.Core version it compiles against) to the latest.
+tunit_floor="$(sed -n 's:.*<PackageVersion Include="TUnit.Core" Version="\([^"]*\)".*:\1:p' "$repo/Directory.Packages.props")"
+tunit_latest="$(sed -n 's:.*<PackageVersion Include="TUnit" Version="\([^"]*\)".*:\1:p' "$repo/Directory.Packages.props")"
+tunit_versions="${CARBONITE_TUNIT_VERSIONS:-$tunit_floor $tunit_latest}"
 packages="$repo/artifacts/packages"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -58,7 +62,7 @@ expect_output() { grep -q -- "$2" "$logs/$1.log" || { tail -n 40 "$logs/$1.log";
 expect_file() { [[ -f "$1" ]] || fail "missing file ${1#"$work"/}"; }
 
 create_project() {
-  local directory="$1" framework="$2" package="$3"
+  local directory="$1" framework="$2" package="$3" tunit="$4"
   mkdir -p "$directory"
   cat > "$directory/nuget.config" << EOF
 <?xml version="1.0" encoding="utf-8"?>
@@ -95,9 +99,11 @@ EOF
 }
 
 for framework in $frameworks; do
-  echo "== $framework, TheDotSide.Carbonite.TUnit"
-  project="$work/$framework/tunit"
-  create_project "$project" "$framework" TheDotSide.Carbonite.TUnit
+for tunit in $tunit_versions; do
+  echo "== $framework, TheDotSide.Carbonite.TUnit with TUnit $tunit"
+  project="$work/$framework/tunit-$tunit"
+  name="$framework-tunit-$tunit"
+  create_project "$project" "$framework" TheDotSide.Carbonite.TUnit "$tunit"
   cat > "$project/SmokeTests.cs" << 'EOF'
 using TheDotSide.Carbonite;
 using TheDotSide.Carbonite.TUnit;
@@ -121,28 +127,31 @@ EOF
   git -C "$project" add -A && git -C "$project" -c user.name=smoke -c user.email=smoke@example.invalid commit -q -m smoke
   snapshots="$project/__snapshots__"
 
-  run "$project" "$framework-tunit-create" pass
-  for name in Object Case_1 Case_2 Assertion; do expect_file "$snapshots/SmokeTests.$name.verified.json"; done
+  run "$project" "$name-create" pass
+  for snapshot in Object Case_1 Case_2 Assertion; do
+    expect_file "$snapshots/SmokeTests.$snapshot.verified.json"
+  done
   grep -q '"Id": "Guid_1"' "$snapshots/SmokeTests.Object.verified.json" || fail "the Guid was not scrubbed"
 
-  run "$project" "$framework-tunit-deterministic" pass -- -p:ContinuousIntegrationBuild=true
-  expect_output "$framework-tunit-deterministic" "réussie : 4\|succeeded: 4\|Passed: 4\|passed: 4"
+  run "$project" "$name-deterministic" pass -- -p:ContinuousIntegrationBuild=true
+  expect_output "$name-deterministic" "réussie : 4\|succeeded: 4\|Passed: 4\|passed: 4"
 
   rm "$snapshots/SmokeTests.Case_2.verified.json"
-  run "$project" "$framework-tunit-ci" fail CI=true
-  expect_output "$framework-tunit-ci" "Snapshot missing: SmokeTests.Case_2"
+  run "$project" "$name-ci" fail CI=true
+  expect_output "$name-ci" "Snapshot missing: SmokeTests.Case_2"
   expect_file "$snapshots/SmokeTests.Case_2.received.json"
 
-  run "$project" "$framework-tunit-recreate" pass
+  run "$project" "$name-recreate" pass
   perl -pi -e 's/Total = 1\.5m/Total = 2.5m/' "$project/SmokeTests.cs"
-  run "$project" "$framework-tunit-mismatch" fail
-  expect_output "$framework-tunit-mismatch" 'Snapshot mismatch: SmokeTests.Object'
-  expect_output "$framework-tunit-mismatch" '+  "Total": 2.5,'
+  run "$project" "$name-mismatch" fail
+  expect_output "$name-mismatch" 'Snapshot mismatch: SmokeTests.Object'
+  expect_output "$name-mismatch" '+  "Total": 2.5,'
   expect_file "$snapshots/SmokeTests.Object.received.json"
+done
 
   echo "== $framework, TheDotSide.Carbonite (generic mode)"
   project="$work/$framework/core"
-  create_project "$project" "$framework" TheDotSide.Carbonite
+  create_project "$project" "$framework" TheDotSide.Carbonite "$tunit_latest"
   cat > "$project/GenericTests.cs" << 'EOF'
 using TheDotSide.Carbonite;
 
@@ -160,4 +169,4 @@ EOF
   run "$project" "$framework-core-deterministic" pass -- -p:ContinuousIntegrationBuild=true
 done
 
-echo "Package smoke test passed for $version ($frameworks)."
+echo "Package smoke test passed for $version ($frameworks; TUnit $tunit_versions)."
