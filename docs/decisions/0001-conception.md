@@ -114,7 +114,7 @@ absente en CI, `Task` sans `await`, fichier de test introuvable).
 ### Fichiers
 
 - Dossier : `__snapshots__/`, à côté du fichier source du test.
-- Nom : `<FichierDeTest>.<MéthodeDeTest>[_<cas>][_<n>]`, puis `.verified.json` pour une valeur
+- Nom : `<FichierDeTest>.<MéthodeDeTest>[_<cas>][.<nom>][.<n>]`, puis `.verified.json` pour une valeur
   sérialisée et `.verified.txt` pour une chaîne. L'extension `.snap` est volontairement écartée :
   Jest considère tout fichier `*.snap` sans test associé comme obsolète et le supprime avec `-u`.
 - Un écart produit `<même nom>.received.json` (ou `.txt`) à côté de la référence, à ignorer dans Git.
@@ -130,9 +130,11 @@ absente en CI, `Task` sans `await`, fichier de test introuvable).
 | Écart | `.received` écrit, échec avec diff | Idem |
 | Écart et `SNAPSHOT_UPDATE=1` | Référence réécrite, test vert | Variable ignorée, échec avec diff et explication |
 
-La CI est détectée par `CI` (sauf `false` ou `0`), `TF_BUILD`, `GITHUB_ACTIONS`, `GITLAB_CI`,
-`JENKINS_URL`, `TEAMCITY_VERSION`, `BUILDKITE`, `CIRCLECI`, `TRAVIS`, `APPVEYOR`,
-`BITBUCKET_BUILD_NUMBER` et `CODEBUILD_BUILD_ID`.
+La CI est détectée par l'une de ces variables, si elle n'est ni vide ni `0`, `false`, `no` ou `off`
+(casse ignorée) : `CI`, `TF_BUILD`, `GITHUB_ACTIONS`, `GITLAB_CI`, `JENKINS_URL`,
+`TEAMCITY_VERSION`, `BUILDKITE`, `CIRCLECI`, `TRAVIS`, `APPVEYOR`, `BITBUCKET_BUILD_NUMBER` et
+`CODEBUILD_BUILD_ID`. `SNAPSHOT_UPDATE` accepte `1`, `true`, `yes` et `on`. En CI, une référence
+absente laisse aussi la valeur dans un fichier `.received`.
 
 La comparaison ignore le BOM UTF-8, les fins de ligne (`\r\n` = `\n`) et les sauts de ligne finaux.
 Les fichiers sont écrits en UTF-8 sans BOM, avec `\n` et un saut de ligne final, par écriture
@@ -147,7 +149,8 @@ relancer avec `SNAPSHOT_UPDATE=1` (syntaxes bash et PowerShell).
 Sérialiseur maison, sans `System.Text.Json`, pour contrôler chaque règle :
 
 - chaîne à la racine : texte brut ; tout le reste : JSON indenté de deux espaces, `\n` ;
-- propriétés publiques puis champs publics, dans l'ordre de déclaration, classes de base d'abord,
+- pour chaque niveau de la hiérarchie, classes de base d'abord : propriétés publiques puis champs
+  publics, dans l'ordre de déclaration,
   toujours selon le type réel de l'objet (pas le type déclaré) ;
 - types et formats invariants : nombres en culture invariante (`double` aller-retour, `NaN` en
   chaîne), dates ISO 8601 sans zéros inutiles, `Guid` en minuscules, enums par leur nom, `Type` en
@@ -160,14 +163,15 @@ Sérialiseur maison, sans `System.Text.Json`, pour contrôler chaque règle :
   texte ;
 - exceptions : `$type`, `Message`, membres propres au type, exception interne ; jamais la pile
   d'appels ;
-- caractères non ASCII conservés (`é`, emoji) ; seuls les caractères de contrôle, `"` et `\` sont
-  échappés ; dans toute chaîne, `\r\n` s'écrit `\n`, comme pour une chaîne à la racine (amendé : un
+- caractères non ASCII conservés (`é`, emoji) ; seuls les caractères de contrôle, U+2028, U+2029,
+  les demi-paires Unicode isolées, `"` et `\` sont échappés ; dans toute chaîne, `\r\n` s'écrit `\n`, comme pour une chaîne à la racine (amendé : un
   texte construit sous Windows différait de Linux) ;
 - référence circulaire : `{Circular reference}` ; profondeur au-delà de 64 : erreur explicite ;
   collection au-delà de 10 000 éléments : erreur explicite ;
 - getter qui lève une exception : `{Exception: Type: message}` ;
 - types opaques ou dangereux à parcourir (`Stream`, `CancellationToken`, délégués, `WaitHandle`,
-  pointeurs, types `ref struct`) : marqueur `{Type}`.
+  `Thread`, `SafeHandle`, `IServiceProvider`…) : marqueur `{Type}` ; membres pointeurs, références
+  ou `ref struct` (`Span<T>`) : omis, la réflexion ne peut pas les lire.
 
 Une `Task`, une `ValueTask` ou un `IAsyncEnumerable<T>` qui ne se lit pas de façon synchrone lèvent
 une `SnapshotException` **à toute profondeur**, avec le chemin du membre et la suggestion
@@ -191,7 +195,7 @@ l'adaptateur est référencé, il l'utilise ; sinon il passe en mode générique
 | Fichier du test | `TestDetails.TestFilePath` | `[CallerFilePath]` |
 | Nom du test | `TestDetails.MethodName` | `[CallerMemberName]` |
 | Cas paramétré | Suffixe tiré des arguments de méthode et des arguments simples de classe, écrits par le sérialiseur du snapshot : culture invariante et mêmes marqueurs `Guid_1`, `DateTime_1` (amendé : `ToString()` dépendait de la culture) | Nom explicite à fournir |
-| Plusieurs snapshots | Compteur par test et par tentative (`_2`, `_3`…) | Nom explicite à fournir |
+| Plusieurs snapshots | Compteur par test et par tentative (`.2`, `.3`…) | Nom explicite à fournir |
 
 Dans les deux modes, un registre de l'exécution détecte deux valeurs différentes écrites dans le
 même snapshot (cas paramétrés sans nom, boucle, méthode utilitaire partagée), et deux noms qui ne
