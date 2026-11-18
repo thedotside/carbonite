@@ -5,7 +5,7 @@ namespace TheDotSide.Carbonite.Tests.Text;
 public class TextNormalizerTests
 {
     [Test]
-    [Arguments("﻿a\r\nb\n\n", "a\nb")]
+    [Arguments("\uFEFFa\r\nb\n\n", "a\nb")]
     [Arguments("a\r\nb\r\n", "a\nb")]
     [Arguments("a\nb", "a\nb")]
     [Arguments("", "")]
