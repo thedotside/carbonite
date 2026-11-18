@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TheDotSide.Carbonite/TheDotSide.Carbonite.csproj" />
+    <Project Path="src/TheDotSide.Carbonite.TUnit/TheDotSide.Carbonite.TUnit.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TheDotSide.Carbonite.Tests/TheDotSide.Carbonite.Tests.csproj" />
+    <Project Path="tests/TheDotSide.Carbonite.TUnit.Tests/TheDotSide.Carbonite.TUnit.Tests.csproj" />
+  </Folder>
+</Solution>

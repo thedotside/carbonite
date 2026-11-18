@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <ProjectReference Include="../../src/TheDotSide.Carbonite.TUnit/TheDotSide.Carbonite.TUnit.csproj" />
+  </ItemGroup>
+  <Import Project="../../src/TheDotSide.Carbonite/buildTransitive/TheDotSide.Carbonite.targets" />
+</Project>

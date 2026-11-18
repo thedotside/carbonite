@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TheDotSide.Carbonite.TUnit</PackageId>
+    <Description>TUnit integration for Carbonite snapshot testing: one snapshot per test case, several snapshots per test, retries, and await Assert.That(value).MatchesSnapshot().</Description>
+    <PackageTags>snapshot;snapshot-testing;approval-testing;testing;tunit</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TheDotSide.Carbonite/TheDotSide.Carbonite.csproj" />
+    <!--
+      Compile against TUnit's public API only. Its source generators, analyzers and implicit
+      usings belong to test projects, which reference TUnit themselves.
+    -->
+    <PackageReference Include="TUnit.Core" ExcludeAssets="analyzers;build;buildTransitive" />
+    <PackageReference Include="TUnit.Assertions" ExcludeAssets="analyzers;build;buildTransitive" />
+    <InternalsVisibleTo Include="TheDotSide.Carbonite.TUnit.Tests" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <!--
+    The adapter uses the core's internal test-context contract, so both packages must come from
+    the same release: pin the core dependency to this exact version.
+  -->
+  <Target Name="PinCarboniteCoreVersion" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_CarbonitePinnedReference Include="@(_ProjectReferencesWithVersions)">
+        <ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
+      </_CarbonitePinnedReference>
+      <_ProjectReferencesWithVersions Remove="@(_ProjectReferencesWithVersions)" />
+      <_ProjectReferencesWithVersions Include="@(_CarbonitePinnedReference)" />
+    </ItemGroup>
+  </Target>
+</Project>

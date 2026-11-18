@@ -1,0 +1,6 @@
+* text=auto eol=lf
+.githooks/* text eol=lf
+*.sh text eol=lf
+# Snapshot references stay LF on every platform (Carbonite also ignores CRLF when comparing).
+**/__snapshots__/** text eol=lf
+*.png binary

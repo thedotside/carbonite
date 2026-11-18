@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    Deterministic builds (ContinuousIntegrationBuild=true) replace source paths with /_/...,
+    including the [CallerFilePath] values Carbonite uses to find the __snapshots__ folder.
+    Recording the project directory lets Carbonite map such a path back to the checkout.
+  -->
+  <ItemGroup Condition="'$(CarboniteRecordProjectDirectory)' != 'false'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>TheDotSide.Carbonite.ProjectDirectory</_Parameter1>
+      <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

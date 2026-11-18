@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      Floor of the published TUnit adapter, not the version the tests run with. TUnit's own
+      dependencies are minimums: a higher floor would lift a consumer's TUnit.Core above their
+      TUnit.Engine. Raise it only when the adapter needs a newer TUnit API.
+    -->
+    <PackageVersion Include="TUnit.Core" Version="1.40.0" />
+    <PackageVersion Include="TUnit.Assertions" Version="1.40.0" />
+    <!-- The repository's own tests run the latest TUnit. -->
+    <PackageVersion Include="TUnit" Version="1.87.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.326" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

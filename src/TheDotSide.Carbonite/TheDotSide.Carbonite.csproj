@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>TheDotSide.Carbonite</PackageId>
+    <Description>Snapshot testing for .NET in one line: Snapshot.Match(value). Deterministic, culture-invariant JSON snapshots, strict on CI, for TUnit, xUnit, NUnit and MSTest.</Description>
+    <PackageTags>snapshot;snapshot-testing;approval-testing;testing;tunit;xunit;nunit;mstest</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TheDotSide.Carbonite.TUnit" />
+    <InternalsVisibleTo Include="TheDotSide.Carbonite.Tests" />
+    <InternalsVisibleTo Include="TheDotSide.Carbonite.TUnit.Tests" />
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None
+      Include="buildTransitive/TheDotSide.Carbonite.targets"
+      Pack="true"
+      PackagePath="buildTransitive/"
+    />
+  </ItemGroup>
+</Project>

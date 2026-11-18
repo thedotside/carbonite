@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Core tests run without the TUnit adapter: every Snapshot.Match here uses the generic mode
+    that xUnit, NUnit and MSTest users get.
+  -->
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <ProjectReference Include="../../src/TheDotSide.Carbonite/TheDotSide.Carbonite.csproj" />
+  </ItemGroup>
+  <Import Project="../../src/TheDotSide.Carbonite/buildTransitive/TheDotSide.Carbonite.targets" />
+</Project>

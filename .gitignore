@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+artifacts/
+TestResults/
+*.user
+node_modules/
+# Carbonite: values that did not match their snapshot. Review them, never commit them.
+*.received.*
