@@ -1,0 +1,21 @@
+{
+  "Id": "Guid_1",
+  "Number": "INV-2026-0042",
+  "CreatedAt": "DateTime_1",
+  "Lines": [
+    {
+      "Label": "Chaise ergonomique",
+      "Quantity": 2,
+      "UnitPrice": 149.90,
+      "Total": 299.80
+    },
+    {
+      "Label": "Lampe",
+      "Quantity": 1,
+      "UnitPrice": 39.5,
+      "Total": 39.5
+    }
+  ],
+  "Status": "Sent",
+  "Total": 339.30
+}
