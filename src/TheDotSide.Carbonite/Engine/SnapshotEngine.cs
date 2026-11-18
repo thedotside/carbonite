@@ -10,8 +10,9 @@ namespace TheDotSide.Carbonite.Engine;
 internal sealed class SnapshotEngine
 {
     // Serializes the work on one snapshot file inside the process (parallel tests, retries).
+    // Ignoring case like the registry: on Windows and macOS two such names are one file.
     private static readonly ConcurrentDictionary<string, Lock> FileLocks = new(
-        StringComparer.Ordinal
+        StringComparer.OrdinalIgnoreCase
     );
 
     private static readonly Lazy<SnapshotEngine> Shared = new(() =>
@@ -69,12 +70,20 @@ internal sealed class SnapshotEngine
             : context.SourceFilePath;
         var testName = context?.TestName ?? callerMemberName;
         var source = _resolver.Resolve(sourceFile, context?.TestAssembly);
-        var firstStem = SnapshotNamer.GetStemPath(source, testName, context?.CaseName, name, 1);
+        // Case names follow the options of the snapshot: invariant, with the same placeholders.
+        var caseName = context is null
+            ? null
+            : ArgumentFormatter.FormatCase(
+                context.ClassArguments,
+                context.MethodArguments,
+                options
+            );
+        var firstStem = SnapshotNamer.GetStemPath(source, testName, caseName, name, 1);
         var occurrence = context?.NextOccurrence?.Invoke(firstStem) ?? 1;
         var stem =
             occurrence == 1
                 ? firstStem
-                : SnapshotNamer.GetStemPath(source, testName, context?.CaseName, name, occurrence);
+                : SnapshotNamer.GetStemPath(source, testName, caseName, name, occurrence);
 
         var files = SnapshotFiles.For(stem, snapshot.Format);
         var title = Path.GetFileName(stem);
@@ -95,7 +104,20 @@ internal sealed class SnapshotEngine
     )
     {
         var actual = snapshot.Text;
-        var conflict = _registry.Record(files.Verified, actual, owner);
+        // Checked before the file: two values (or two letter cases) sharing one snapshot must
+        // fail whatever the order of the cases, even when this value matches the file.
+        if (_registry.Record(files.Verified, actual, owner) is { } conflict)
+        {
+            var message = string.Equals(
+                conflict.VerifiedPath,
+                files.Verified,
+                StringComparison.Ordinal
+            )
+                ? SnapshotMessages.Conflict(title, conflict, actual)
+                : SnapshotMessages.CaseCollision(conflict.VerifiedPath, files.Verified);
+            return Failed(SnapshotOutcomeKind.Conflict, files, receivedPath: null, message);
+        }
+
         var canUpdate = environment.UpdateRequested && !environment.IsContinuousIntegration;
         var expected = Read(files.Verified);
 
@@ -158,14 +180,7 @@ internal sealed class SnapshotEngine
 
         if (canUpdate)
         {
-            return conflict is null
-                ? Write(files, actual, SnapshotOutcomeKind.Updated)
-                : Failed(
-                    SnapshotOutcomeKind.Conflict,
-                    files,
-                    receivedPath: null,
-                    SnapshotMessages.Conflict(title, conflict)
-                );
+            return Write(files, actual, SnapshotOutcomeKind.Updated);
         }
 
         SnapshotFile.WriteAtomic(files.Received, actual);
@@ -179,7 +194,6 @@ internal sealed class SnapshotEngine
                 actual,
                 files.Verified,
                 files.Received,
-                conflict,
                 environment.UpdateRequested && environment.IsContinuousIntegration
             )
         );

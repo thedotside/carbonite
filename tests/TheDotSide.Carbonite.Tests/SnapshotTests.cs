@@ -18,11 +18,15 @@ public class SnapshotTests
         using var temp = new TempDirectory();
         var source = temp.Combine("PanierTests.cs");
         await File.WriteAllTextAsync(source, "// tests");
+        // Two snapshots, as committed by an earlier run: checking two values against one
+        // snapshot in the same run is a conflict.
+        var same = temp.Combine("__snapshots__", "PanierTests.Same.verified.json");
         var verified = temp.Combine("__snapshots__", "PanierTests.Total.verified.json");
         Directory.CreateDirectory(Path.GetDirectoryName(verified)!);
+        await File.WriteAllTextAsync(same, "{\n  \"Total\": 1\n}\n");
         await File.WriteAllTextAsync(verified, "{\n  \"Total\": 1\n}\n");
 
-        Snapshot.Match(new { Total = 1 }, sourceFilePath: source, memberName: "Total");
+        Snapshot.Match(new { Total = 1 }, sourceFilePath: source, memberName: "Same");
         var exception = Assert.Throws<SnapshotMismatchException>(() =>
             Snapshot.Match(new { Total = 2 }, sourceFilePath: source, memberName: "Total")
         );

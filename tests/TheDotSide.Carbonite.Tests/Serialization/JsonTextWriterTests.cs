@@ -32,6 +32,14 @@ public class JsonTextWriterTests
     }
 
     [Test]
+    public async Task Quote_writes_windows_line_endings_like_unix_ones()
+    {
+        // Text built with AppendLine on Windows must snapshot like on Linux; a lone CR stays.
+        await Assert.That(JsonTextWriter.Quote("a\r\nb")).IsEqualTo("\"a\\nb\"");
+        await Assert.That(JsonTextWriter.Quote("a\rb")).IsEqualTo("\"a\\rb\"");
+    }
+
+    [Test]
     public async Task Writes_a_single_top_level_literal()
     {
         var writer = new JsonTextWriter();

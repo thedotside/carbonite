@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using TheDotSide.Carbonite.Extensibility;
-using TheDotSide.Carbonite.Naming;
 using TUnit.Core;
 
 namespace TheDotSide.Carbonite.TUnit;
@@ -35,10 +34,8 @@ internal sealed class TUnitTestContextProvider : ITestContextProvider
         return new SnapshotTestContext(
             details.TestFilePath ?? "",
             details.MethodName,
-            ArgumentFormatter.FormatCase(
-                details.TestClassArguments ?? [],
-                details.TestMethodArguments ?? []
-            ),
+            details.TestClassArguments ?? [],
+            details.TestMethodArguments ?? [],
             details.ClassType.Assembly,
             details.ClassType.Name + "." + context.Metadata.DisplayName,
             key => occurrences.AddOrUpdate(key, 1, (_, count) => count + 1)

@@ -67,7 +67,7 @@ internal static class SnapshotSerializer
             );
         }
 
-        if (ValueKinds.AsyncEnumerableInterface(type) is { } sequence)
+        if (ValueKinds.OnlyAsyncEnumerable(type) is { } sequence)
         {
             throw new SnapshotException(
                 $"Carbonite received an {TypeNameFormatter.Format(sequence)}, which can only be read asynchronously. Read it first: Snapshot.Match(await values.ToListAsync())."

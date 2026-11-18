@@ -1,4 +1,3 @@
-using System.Collections;
 using TheDotSide.Carbonite.Serialization;
 
 namespace TheDotSide.Carbonite.Naming;
@@ -6,27 +5,38 @@ namespace TheDotSide.Carbonite.Naming;
 /// <summary>Turns the arguments of a parameterized test case into a snapshot name suffix.</summary>
 internal static class ArgumentFormatter
 {
-    private const int MaxCollectionItems = 10;
-
     /// <summary>
-    /// Formats the method arguments and the simple class arguments (fixtures are skipped).
-    /// Returns <see langword="null"/> when the test has no arguments.
+    /// Formats the method arguments and the simple class arguments (fixtures are skipped), with
+    /// the snapshot's own serializer: invariant whatever the culture, and with the same
+    /// placeholders, so that a <c>Guid.NewGuid()</c> or a <c>DateTime.Now</c> argument cannot
+    /// give the snapshot a new name at every run. Returns <see langword="null"/> without arguments.
     /// </summary>
     internal static string? FormatCase(
         IReadOnlyList<object?> classArguments,
-        IReadOnlyList<object?> methodArguments
+        IReadOnlyList<object?> methodArguments,
+        SnapshotOptions options
     )
     {
-        var parts = classArguments
+        var arguments = classArguments
             .Where(IsSimple)
             .Concat(methodArguments.Where(argument => argument is not CancellationToken))
-            .Select(Format)
             .ToList();
-        if (parts.Count == 0)
+        if (arguments.Count == 0)
         {
             return null;
         }
 
+        // One numbering for the whole case: two arguments with the same Guid share Guid_1.
+        var placeholders = new Placeholders();
+        var parts = arguments.Select(argument =>
+            argument switch
+            {
+                null => "null",
+                string { Length: 0 } => "empty",
+                string text => text,
+                _ => SnapshotWriter.WriteCompact(argument, options, placeholders),
+            }
+        );
         var suffix = SnapshotNamer.Sanitize(string.Join('_', parts));
         return suffix.Length == 0 ? "empty" : suffix;
     }
@@ -35,39 +45,4 @@ internal static class ArgumentFormatter
     // values describe the case.
     private static bool IsSimple(object? argument) =>
         argument is null || ScalarFormatter.TryFormat(argument, out _);
-
-    private static string Format(object? argument)
-    {
-        switch (argument)
-        {
-            case null:
-                return "null";
-            case string { Length: 0 }:
-                return "empty";
-            case string text:
-                return text;
-        }
-
-        if (ScalarFormatter.TryFormat(argument, out var scalar))
-        {
-            return scalar.Text;
-        }
-
-        if (argument is IEnumerable sequence)
-        {
-            var items = sequence.Cast<object?>().Take(MaxCollectionItems + 1).ToList();
-            var shown = string.Join('-', items.Take(MaxCollectionItems).Select(Format));
-            return items.Count > MaxCollectionItems ? shown + "-more" : shown;
-        }
-
-        return OverridesToString(argument.GetType())
-            ? argument.ToString() ?? ""
-            : TypeNameFormatter.Format(argument.GetType());
-    }
-
-    private static bool OverridesToString(Type type)
-    {
-        var declaringType = type.GetMethod(nameof(ToString), Type.EmptyTypes)?.DeclaringType;
-        return declaringType != typeof(object) && declaringType != typeof(ValueType);
-    }
 }

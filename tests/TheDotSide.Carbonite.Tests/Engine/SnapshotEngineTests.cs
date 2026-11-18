@@ -132,11 +132,42 @@ public class SnapshotEngineTests
 
         var outcome = harness.Check(new { Case = "B" });
 
-        await Assert.That(outcome.Kind).IsEqualTo(SnapshotOutcomeKind.Mismatched);
+        await Assert.That(outcome.Kind).IsEqualTo(SnapshotOutcomeKind.Conflict);
         await Assert.That(outcome.FailureMessage!).Contains("already checked earlier in this run");
+        await Assert.That(outcome.FailureMessage!).Contains("-  \"Case\": \"A\"");
+        await Assert.That(outcome.FailureMessage!).Contains("+  \"Case\": \"B\"");
         await Assert
             .That(outcome.FailureMessage!)
             .Contains("Snapshot.Match(value, $\"case-{id}\")");
+    }
+
+    [Test]
+    public async Task A_second_value_fails_even_when_it_matches_the_file()
+    {
+        // Whatever the order of the cases, the run fails with the conflict explained.
+        using var harness = new Harness();
+        harness.Seed("{\n  \"Case\": \"A\"\n}");
+
+        var first = harness.Check(new { Case = "B" });
+        var second = harness.Check(new { Case = "A" });
+
+        await Assert.That(first.Kind).IsEqualTo(SnapshotOutcomeKind.Mismatched);
+        await Assert.That(second.Kind).IsEqualTo(SnapshotOutcomeKind.Conflict);
+        await Assert.That(second.FailureMessage!).Contains("already checked earlier in this run");
+    }
+
+    [Test]
+    public async Task Names_that_differ_only_by_letter_case_conflict_on_every_system()
+    {
+        // Windows and macOS see one file where Linux sees two: refuse it everywhere.
+        using var harness = new Harness();
+        harness.Check(new { Value = 1 }, name: "Total");
+
+        var outcome = harness.Check(new { Value = 1 }, name: "total");
+
+        await Assert.That(outcome.Kind).IsEqualTo(SnapshotOutcomeKind.Conflict);
+        await Assert.That(outcome.FailureMessage!).Contains("differ only by letter case");
+        await Assert.That(File.Exists(harness.Verified("FactureTests.Calcule.Total"))).IsTrue();
     }
 
     [Test]
@@ -199,7 +230,8 @@ public class SnapshotEngineTests
             new FakeProvider(source => new SnapshotTestContext(
                 source,
                 "FromContext",
-                "1_a",
+                [],
+                [1, "a"],
                 null,
                 "FactureTests.FromContext(1, a)",
                 key => occurrences[key] = occurrences.GetValueOrDefault(key) + 1
@@ -251,10 +283,11 @@ public class SnapshotEngineTests
     public async Task Notes_differences_that_are_only_whitespace()
     {
         using var harness = new Harness();
-        harness.Check("a b");
+        harness.Seed("a b", extension: "txt");
 
         var outcome = harness.Check("a  b");
 
+        await Assert.That(outcome.Kind).IsEqualTo(SnapshotOutcomeKind.Mismatched);
         await Assert.That(outcome.FailureMessage!).Contains("only differences are whitespace");
     }
 
@@ -326,10 +359,15 @@ public class SnapshotEngineTests
             _temp.Combine("__snapshots__", $"{stem}.received.{extension}");
 
         // A verified file committed by an earlier test run.
-        public void Seed(string content, string stem = "FactureTests.Calcule")
+        public void Seed(
+            string content,
+            string stem = "FactureTests.Calcule",
+            string extension = "json"
+        )
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(Verified(stem))!);
-            File.WriteAllText(Verified(stem), content + "\n");
+            var path = Verified(stem, extension);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, content + "\n");
         }
 
         public void Dispose() => _temp.Dispose();

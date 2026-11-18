@@ -12,14 +12,29 @@ internal static class ValueKinds
     private static readonly ConcurrentDictionary<Type, Type?> AsyncEnumerables = new();
 
     /// <summary>
-    /// Values that are pointless or dangerous to walk: tasks (reading <c>Result</c> can block
-    /// forever), streams, delegates, threading and infrastructure objects. Returns the
-    /// placeholder name, or <see langword="null"/> for an ordinary value.
+    /// Values whose content does not exist yet: a task, or a sequence that can only be read
+    /// asynchronously. Snapshotting one is always a forgotten <c>await</c>, so the serializer
+    /// refuses it at any depth, without ever reading <c>Result</c> (which can block forever).
+    /// Returns the type name to show, or <see langword="null"/>.
+    /// </summary>
+    internal static string? PendingName(object value) =>
+        value switch
+        {
+            Task task => TaskName(task.GetType()),
+            _ when IsValueTask(value.GetType()) => TypeNameFormatter.Format(value.GetType()),
+            _ when OnlyAsyncEnumerable(value.GetType()) is { } sequence => TypeNameFormatter.Format(
+                sequence
+            ),
+            _ => null,
+        };
+
+    /// <summary>
+    /// Values that are pointless or dangerous to walk: streams, delegates, threading and
+    /// infrastructure objects. Returns the placeholder name, or <see langword="null"/>.
     /// </summary>
     internal static string? OpaqueName(object value) =>
         value switch
         {
-            Task task => TaskName(task.GetType()),
             CancellationToken => "CancellationToken",
             System.Reflection.Pointer => "Pointer",
             Delegate
@@ -31,11 +46,17 @@ internal static class ValueKinds
             or SafeHandle
             or CancellationTokenSource
             or IServiceProvider => TypeNameFormatter.Format(value.GetType()),
-            _ when IsValueTask(value.GetType()) => TypeNameFormatter.Format(value.GetType()),
-            _ when AsyncEnumerableInterface(value.GetType()) is { } sequence =>
-                TypeNameFormatter.Format(sequence),
             _ => null,
         };
+
+    /// <summary>
+    /// The <c>IAsyncEnumerable&lt;T&gt;</c> of a type that cannot be enumerated synchronously.
+    /// Types that are both (an EF Core <c>DbSet</c>, for example) are read as ordinary sequences.
+    /// </summary>
+    internal static Type? OnlyAsyncEnumerable(Type type) =>
+        typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
+            ? null
+            : AsyncEnumerableInterface(type);
 
     internal static string TaskName(Type type)
     {

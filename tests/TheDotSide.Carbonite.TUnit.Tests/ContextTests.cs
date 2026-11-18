@@ -1,5 +1,6 @@
 using System.Globalization;
 using TheDotSide.Carbonite.Extensibility;
+using TheDotSide.Carbonite.Naming;
 
 namespace TheDotSide.Carbonite.TUnit.Tests;
 
@@ -20,7 +21,8 @@ public class ContextTests
 
         await Assert.That(context.TestName).IsEqualTo(nameof(Describes_the_running_test));
         await Assert.That(context.SourceFilePath).EndsWith("ContextTests.cs");
-        await Assert.That(context.CaseName).IsNull();
+        await Assert.That(context.ClassArguments).IsEmpty();
+        await Assert.That(context.MethodArguments).IsEmpty();
         await Assert.That(context.TestAssembly).IsEqualTo(typeof(ContextTests).Assembly);
         await Assert.That(context.Description).Contains("ContextTests");
     }
@@ -29,8 +31,17 @@ public class ContextTests
     [Arguments("fr-FR", 3)]
     public async Task Names_a_case_after_its_arguments(string culture, int count)
     {
+        var context = Current();
+
+        await Assert.That(context.MethodArguments).IsEquivalentTo(new object?[] { culture, count });
         await Assert
-            .That(Current().CaseName)
+            .That(
+                ArgumentFormatter.FormatCase(
+                    context.ClassArguments,
+                    context.MethodArguments,
+                    new SnapshotOptions()
+                )
+            )
             .IsEqualTo(string.Create(CultureInfo.InvariantCulture, $"{culture}_{count}"));
     }
 

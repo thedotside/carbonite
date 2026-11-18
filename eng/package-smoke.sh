@@ -60,6 +60,11 @@ run() {
 
 expect_output() { grep -q -- "$2" "$logs/$1.log" || { tail -n 40 "$logs/$1.log"; fail "$1: '$2' not found"; }; }
 expect_file() { [[ -f "$1" ]] || fail "missing file ${1#"$work"/}"; }
+# Without /_/ paths in the test assembly, a "deterministic" step proves nothing.
+expect_mapped_paths() {
+  grep -a -q "/_/" "$1/bin/Debug/$2/Smoke.Tests.dll" ||
+    fail "${1#"$work"/}: the deterministic build kept the real source paths"
+}
 
 create_project() {
   local directory="$1" framework="$2" package="$3" tunit="$4"
@@ -133,8 +138,11 @@ EOF
   done
   grep -q '"Id": "Guid_1"' "$snapshots/SmokeTests.Object.verified.json" || fail "the Guid was not scrubbed"
 
-  run "$project" "$name-deterministic" pass -- -p:ContinuousIntegrationBuild=true
+  # A fresh build in CI conditions: an incremental build would keep the previous source paths.
+  rm -rf "$project/bin" "$project/obj"
+  run "$project" "$name-deterministic" pass CI=true -- -p:ContinuousIntegrationBuild=true
   expect_output "$name-deterministic" "réussie : 4\|succeeded: 4\|Passed: 4\|passed: 4"
+  expect_mapped_paths "$project" "$framework"
 
   rm "$snapshots/SmokeTests.Case_2.verified.json"
   run "$project" "$name-ci" fail CI=true
@@ -166,7 +174,9 @@ EOF
   git -C "$project" add -A && git -C "$project" -c user.name=smoke -c user.email=smoke@example.invalid commit -q -m smoke
   run "$project" "$framework-core-create" pass
   expect_file "$project/__snapshots__/GenericTests.Object.verified.json"
-  run "$project" "$framework-core-deterministic" pass -- -p:ContinuousIntegrationBuild=true
+  rm -rf "$project/bin" "$project/obj"
+  run "$project" "$framework-core-deterministic" pass CI=true -- -p:ContinuousIntegrationBuild=true
+  expect_mapped_paths "$project" "$framework"
 done
 
 echo "Package smoke test passed for $version ($frameworks; TUnit $tunit_versions)."

@@ -152,22 +152,27 @@ Sérialiseur maison, sans `System.Text.Json`, pour contrôler chaque règle :
 - types et formats invariants : nombres en culture invariante (`double` aller-retour, `NaN` en
   chaîne), dates ISO 8601 sans zéros inutiles, `Guid` en minuscules, enums par leur nom, `Type` en
   nom C# lisible sans version d'assembly ;
-- dictionnaires triés par clé (ordinal pour les chaînes), ensembles non ordonnés triés ;
+- dictionnaires et ensembles non ordonnés toujours triés : chaînes en ordinal, valeurs simples
+  comparables par valeur, objets et `Guid` aléatoires par leur contenu (amendé le 18/11 après revue :
+  un `ImmutableHashSet` ou un `FrozenSet` d'objets changeait d'ordre d'un processus à l'autre) ;
 - tableaux d'octets en Base64, tableaux multidimensionnels imbriqués, `IGrouping` avec sa clé ;
 - `JsonElement`, `JsonDocument`, `JsonNode` réécrits en JSON indenté ; `XDocument` et `XElement` en
   texte ;
 - exceptions : `$type`, `Message`, membres propres au type, exception interne ; jamais la pile
   d'appels ;
 - caractères non ASCII conservés (`é`, emoji) ; seuls les caractères de contrôle, `"` et `\` sont
-  échappés ;
+  échappés ; dans toute chaîne, `\r\n` s'écrit `\n`, comme pour une chaîne à la racine (amendé : un
+  texte construit sous Windows différait de Linux) ;
 - référence circulaire : `{Circular reference}` ; profondeur au-delà de 64 : erreur explicite ;
   collection au-delà de 10 000 éléments : erreur explicite ;
 - getter qui lève une exception : `{Exception: Type: message}` ;
-- types opaques ou dangereux à parcourir (`Task`, `Stream`, `CancellationToken`, délégués,
-  `WaitHandle`, pointeurs, types `ref struct`) : marqueur `{Type}`, sans jamais appeler `Result`.
+- types opaques ou dangereux à parcourir (`Stream`, `CancellationToken`, délégués, `WaitHandle`,
+  pointeurs, types `ref struct`) : marqueur `{Type}`.
 
-À la racine, une `Task`, une `ValueTask`, un `IAsyncEnumerable<T>` ou un `Stream` lèvent une
-`SnapshotException` qui explique la correction (`await`, `ToListAsync()`, lire le flux).
+Une `Task`, une `ValueTask` ou un `IAsyncEnumerable<T>` qui ne se lit pas de façon synchrone lèvent
+une `SnapshotException` **à toute profondeur**, avec le chemin du membre et la suggestion
+`options.IgnoreMember("…")`, sans jamais lire `Result`. À la racine, un `Stream` est aussi refusé.
+(Amendé le 18/11 : le marqueur `{Task<int>}` laissait passer un `await` oublié dans un objet.)
 
 ### Valeurs dynamiques
 
@@ -185,13 +190,15 @@ l'adaptateur est référencé, il l'utilise ; sinon il passe en mode générique
 | --- | --- | --- |
 | Fichier du test | `TestDetails.TestFilePath` | `[CallerFilePath]` |
 | Nom du test | `TestDetails.MethodName` | `[CallerMemberName]` |
-| Cas paramétré | Suffixe tiré des arguments de méthode et des arguments simples de classe | Nom explicite à fournir |
+| Cas paramétré | Suffixe tiré des arguments de méthode et des arguments simples de classe, écrits par le sérialiseur du snapshot : culture invariante et mêmes marqueurs `Guid_1`, `DateTime_1` (amendé : `ToString()` dépendait de la culture) | Nom explicite à fournir |
 | Plusieurs snapshots | Compteur par test et par tentative (`_2`, `_3`…) | Nom explicite à fournir |
 
 Dans les deux modes, un registre de l'exécution détecte deux valeurs différentes écrites dans le
-même snapshot (cas paramétrés sans nom, boucle, méthode utilitaire partagée). Le message d'échec le
-dit et montre comment nommer chaque cas ; en mode mise à jour, ce conflit est une erreur au lieu
-d'une réécriture aléatoire.
+même snapshot (cas paramétrés sans nom, boucle, méthode utilitaire partagée), et deux noms qui ne
+diffèrent que par la casse (un seul fichier sous Windows et macOS). Le contrôle a lieu avant la
+lecture du fichier : la seconde valeur échoue en « conflict » quel que soit l'ordre des cas, même
+si elle égale le fichier, avec le diff entre les deux valeurs et la façon de nommer chaque cas. En
+mode mise à jour, ce conflit est aussi une erreur. (Amendé le 18/11 après revue.)
 
 L'adaptateur dépend de `TUnit.Core` et `TUnit.Assertions` à partir de `1.40.0`. Cette API est
 identique en `1.40.0`, `1.80.0` et `1.87.0`. Un plancher bas évite de désaligner le moteur TUnit
@@ -211,8 +218,8 @@ cas d'échec, l'erreur explique la cause et la correction.
 - `TheDotSide.Carbonite.TUnit` : dépend du cœur à la même version et de TUnit.
 - Lien source (SourceLink du SDK), symboles `.snupkg`, documentation XML, `TreatWarningsAsErrors`,
   `Meziantou.Analyzer` en référence globale privée.
-- CI Windows et Linux : formatage, compilation, tests des deux cibles avec `CI=true`, paquets, essai
-  des paquets dans des projets consommateurs isolés. Publication par étiquette avec trusted
+- CI Linux, Windows et macOS : formatage, compilation, tests des deux cibles avec `CI=true`, paquets,
+  essai des paquets dans des projets consommateurs isolés, avec TUnit 1.40.0 et la dernière version. Publication par étiquette avec trusted
   publishing NuGet, inactive tant que la politique NuGet et l'environnement `nuget` ne sont pas
   configurés.
 
@@ -223,5 +230,8 @@ cas d'échec, l'erreur explique la cause et la correction.
 - Création de la référence au premier passage local, comme Jest ; jamais en CI.
 - Comparaison insensible aux sauts de ligne finaux.
 - Messages d'erreur en anglais, documentation en français, README en anglais.
-- Plancher TUnit `1.40.0`.
+- Plancher TUnit `1.40.0`, vérifié à l'exécution par l'essai des paquets ; pas de borne haute.
+- Scripts `eng/*.sh` en bash, vérifiables sur macOS, plutôt qu'en PowerShell.
+- Une chaîne CRLF et une chaîne LF donnent le même snapshot : pour tester les fins de ligne
+  elles-mêmes, utiliser une assertion classique.
 - Pas de mode d'emploi pour Native AOT dans la 0.1.

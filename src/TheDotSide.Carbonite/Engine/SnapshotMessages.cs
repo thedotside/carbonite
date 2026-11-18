@@ -22,7 +22,6 @@ internal static class SnapshotMessages
         string actual,
         string verifiedPath,
         string receivedPath,
-        RegistryEntry? conflict,
         bool updateIgnoredOnContinuousIntegration
     )
     {
@@ -37,18 +36,6 @@ internal static class SnapshotMessages
             message.Append(
                 "Note: the only differences are whitespace (spaces, tabs or line breaks).\n\n"
             );
-        }
-
-        if (conflict is not null)
-        {
-            message
-                .Append(
-                    "Note: this snapshot was already checked earlier in this run with a different value (by "
-                )
-                .Append(conflict.Owner)
-                .Append("). ")
-                .Append(NameEachValue)
-                .Append(" Otherwise the value is not deterministic.\n\n");
         }
 
         if (updateIgnoredOnContinuousIntegration)
@@ -89,10 +76,23 @@ internal static class SnapshotMessages
         + $"The verified snapshot is {otherVerifiedPath}, but the value is now {(isText ? "a string, stored as text" : "an object, stored as JSON")} in {Path.GetFileName(verifiedPath)}.\n"
         + $"If this change is intended, delete {otherVerifiedPath}, or run the tests again with SNAPSHOT_UPDATE=1 to replace it.";
 
-    internal static string Conflict(string title, RegistryEntry conflict) =>
+    internal static string Conflict(string title, RegistryEntry conflict, string actual) =>
         $"Snapshot conflict: {title}\n\n"
-        + $"Two different values were checked against this snapshot in the same run (the first one by {conflict.Owner}), so SNAPSHOT_UPDATE cannot choose between them.\n"
-        + NameEachValue;
+        + $"This snapshot was already checked earlier in this run with a different value (the first one by {conflict.Owner}). One snapshot file cannot hold both, and SNAPSHOT_UPDATE cannot choose between them.\n\n"
+        + LineDiff.Unified(
+            conflict.Text,
+            actual,
+            expectedLabel: "first value",
+            actualLabel: "this value"
+        )
+        + "\n\n"
+        + NameEachValue
+        + " Otherwise the value is not deterministic: hide what changes with options.IgnoreMember or options.ScrubMember.";
+
+    internal static string CaseCollision(string firstPath, string path) =>
+        $"Snapshot name conflict: {Path.GetFileName(path)}\n\n"
+        + $"The snapshot names {Path.GetFileName(firstPath)} and {Path.GetFileName(path)} differ only by letter case. Windows and macOS see a single file where Linux sees two, so the snapshots would overwrite each other.\n"
+        + "Rename one of the tests or snapshots (the name argument of Snapshot.Match).";
 
     internal static string InvalidEncoding(string path) =>
         $"The snapshot file {path} is not valid UTF-8. Save it as UTF-8, or delete it so that Carbonite creates it again.";

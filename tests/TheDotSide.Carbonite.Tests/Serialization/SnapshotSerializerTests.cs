@@ -171,9 +171,9 @@ public class SnapshotSerializerTests
     }
 
     [Test]
-    public async Task Keeps_the_order_of_scrubbed_guid_keys()
+    public async Task Sorts_scrubbed_guid_keys_by_their_values()
     {
-        var value = new Dictionary<Guid, int> { [Guid.NewGuid()] = 1, [Guid.NewGuid()] = 2 };
+        var value = new Dictionary<Guid, int> { [Guid.NewGuid()] = 2, [Guid.NewGuid()] = 1 };
 
         await Assert
             .That(Json(value))
@@ -185,6 +185,41 @@ public class SnapshotSerializerTests
                 }
                 """
             );
+    }
+
+    [Test]
+    public async Task Sorts_sets_of_objects_and_dictionaries_with_object_keys_by_content()
+    {
+        // Unordered collections of objects must not depend on insertion or hash order.
+        var a = new Person("Ada", 36);
+        var b = new Person("Bob", 41);
+        var sets = (new HashSet<Person> { b, a }, new HashSet<Person> { a, b });
+        var maps = (
+            new Dictionary<Person, int> { [b] = 2, [a] = 1 },
+            new Dictionary<Person, int> { [a] = 1, [b] = 2 }
+        );
+
+        await Assert.That(Json(sets.Item1)).IsEqualTo(Json(sets.Item2));
+        await Assert.That(Json(maps.Item1)).IsEqualTo(Json(maps.Item2));
+        await Assert.That(Json(sets.Item1)).StartsWith("[\n  {\n    \"Name\": \"Ada\",");
+        await Assert
+            .That(Json(maps.Item1))
+            .StartsWith("{\n  \"{\\\"Name\\\":\\\"Ada\\\",\\\"Age\\\":36}\": 1,");
+    }
+
+    [Test]
+    public async Task Writes_windows_line_endings_inside_text_like_unix_ones()
+    {
+        var windows = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["a\r\nb"] = "Line 1\r\nLine 2",
+        };
+        var unix = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["a\nb"] = "Line 1\nLine 2",
+        };
+
+        await Assert.That(Json(windows)).IsEqualTo(Json(unix));
     }
 
     [Test]
@@ -440,12 +475,9 @@ public class SnapshotSerializerTests
     [Test]
     public async Task Writes_placeholders_for_opaque_values_without_reading_them()
     {
-        // Reading Task.Result here would block forever.
-        var pending = new TaskCompletionSource<int>().Task;
         using var stream = new MemoryStream();
         var value = new
         {
-            Pending = pending,
             Callback = (Func<int>)(() => 1),
             Stream = stream,
             Token = CancellationToken.None,
@@ -456,13 +488,35 @@ public class SnapshotSerializerTests
             .IsEqualTo(
                 """
                 {
-                  "Pending": "{Task<int>}",
                   "Callback": "{Func<int>}",
                   "Stream": "{MemoryStream}",
                   "Token": "{CancellationToken}"
                 }
                 """
             );
+    }
+
+    [Test]
+    public async Task Rejects_a_task_anywhere_in_the_value_without_waiting_for_it()
+    {
+        // Reading Task.Result here would block forever: the check must not touch it.
+        var pending = new TaskCompletionSource<int>().Task;
+
+        var member = Assert.Throws<SnapshotException>(() =>
+            Json(new { Order = new { Invoice = pending } })
+        );
+        var item = Assert.Throws<SnapshotException>(() => Json(new[] { Task.FromResult(1) }));
+        var valueTask = Assert.Throws<SnapshotException>(() =>
+            Json(new { Total = new ValueTask<int>(1) })
+        );
+        var sequence = Assert.Throws<SnapshotException>(() => Json(new { Lines = Numbers() }));
+
+        await Assert.That(member.Message).Contains("$.Order.Invoice");
+        await Assert.That(member.Message).Contains("Did you forget 'await'?");
+        await Assert.That(member.Message).Contains("options.IgnoreMember(\"Invoice\")");
+        await Assert.That(item.Message).Contains("$[0]");
+        await Assert.That(valueTask.Message).Contains("ValueTask<int>");
+        await Assert.That(sequence.Message).Contains("IAsyncEnumerable<int>");
     }
 
     [Test]

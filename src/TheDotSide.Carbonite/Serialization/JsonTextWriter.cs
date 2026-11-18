@@ -50,6 +50,9 @@ internal sealed class JsonTextWriter
     /// <summary>Escapes a string for JSON, keeping every printable character readable.</summary>
     internal static string Quote(string value)
     {
+        // Text built on Windows (AppendLine, Environment.NewLine) must snapshot like on Linux,
+        // exactly as a string snapshot does; a lone carriage return is content and stays.
+        value = value.Replace("\r\n", "\n", StringComparison.Ordinal);
         var builder = new StringBuilder(value.Length + 2).Append('"');
         for (var index = 0; index < value.Length; index++)
         {

@@ -17,7 +17,9 @@ internal static class LineDiff
         string expected,
         string actual,
         int contextLines = 3,
-        int maxOutputLines = 80
+        int maxOutputLines = 80,
+        string expectedLabel = "verified",
+        string actualLabel = "received"
     )
     {
         if (string.Equals(expected, actual, StringComparison.Ordinal))
@@ -27,7 +29,7 @@ internal static class LineDiff
 
         var oldLines = expected.Split('\n');
         var newLines = actual.Split('\n');
-        var output = new List<string> { "--- verified", "+++ received" };
+        var output = new List<string> { "--- " + expectedLabel, "+++ " + actualLabel };
         var edits = ComputeEdits(oldLines, newLines);
         if (edits is null)
         {

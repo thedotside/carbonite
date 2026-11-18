@@ -5,7 +5,8 @@ namespace TheDotSide.Carbonite.Extensibility;
 /// <summary>What a test framework adapter knows about the running test.</summary>
 /// <param name="SourceFilePath">The file that declares the test, or empty to use the caller's file.</param>
 /// <param name="TestName">The test method name.</param>
-/// <param name="CaseName">The argument suffix of a parameterized case, or <see langword="null"/>.</param>
+/// <param name="ClassArguments">The arguments of a parameterized test class (fixtures included).</param>
+/// <param name="MethodArguments">The arguments of a parameterized test case.</param>
 /// <param name="TestAssembly">The assembly of the test, used to map deterministic build paths.</param>
 /// <param name="Description">How messages name the test, for example <c>FactureTests.Calcule(1, 2)</c>.</param>
 /// <param name="NextOccurrence">
@@ -15,7 +16,8 @@ namespace TheDotSide.Carbonite.Extensibility;
 internal sealed record SnapshotTestContext(
     string SourceFilePath,
     string TestName,
-    string? CaseName,
+    IReadOnlyList<object?> ClassArguments,
+    IReadOnlyList<object?> MethodArguments,
     Assembly? TestAssembly,
     string Description,
     Func<string, int>? NextOccurrence

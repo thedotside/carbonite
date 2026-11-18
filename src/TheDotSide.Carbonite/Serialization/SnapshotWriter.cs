@@ -50,6 +50,18 @@ internal sealed class SnapshotWriter
 
     public override string ToString() => _json.ToString();
 
+    /// <summary>One-line JSON of a value, numbered with the given placeholders.</summary>
+    internal static string WriteCompact(
+        object? value,
+        SnapshotOptions options,
+        Placeholders placeholders
+    )
+    {
+        var writer = new SnapshotWriter(options, new JsonTextWriter(indented: false), placeholders);
+        writer.Write(value);
+        return writer.ToString();
+    }
+
     /// <summary>XML as indented text with LF line endings, whatever the operating system.</summary>
     internal static string XmlText(XNode node) =>
         node.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
@@ -125,6 +137,11 @@ internal sealed class SnapshotWriter
             case Assembly assembly:
                 _json.StringValue(assembly.GetName().Name ?? "");
                 return true;
+        }
+
+        if (ValueKinds.PendingName(value) is { } pending)
+        {
+            throw new SnapshotException(PendingValueMessage(pending));
         }
 
         if (ValueKinds.OpaqueName(value) is { } opaque)
@@ -387,8 +404,9 @@ internal sealed class SnapshotWriter
         _json.EndObject();
     }
 
-    // Keys are sorted when that is deterministic: strings ordinally, comparable scalars by value.
-    // Random keys (scrubbed Guids) and complex keys keep the dictionary's own order.
+    // A dictionary has no meaningful order, and hash-based ones (immutable, concurrent, frozen)
+    // change it from one process to the next: entries are always sorted. Strings ordinally,
+    // comparable scalars by value, anything else (objects, random Guids) by content.
     private List<KeyValuePair<object, object?>> OrderEntries(
         List<KeyValuePair<object, object?>> entries
     )
@@ -405,8 +423,18 @@ internal sealed class SnapshotWriter
 
         return IsSortableScalar(entries.ConvertAll(entry => (object?)entry.Key))
             ? [.. entries.OrderBy(entry => entry.Key, Comparer<object>.Default)]
-            : entries;
+            :
+            [
+                .. entries.OrderBy(
+                    entry => ContentKey(entry.Key) + "\0" + ContentKey(entry.Value),
+                    StringComparer.Ordinal
+                ),
+            ];
     }
+
+    // Placeholders numbered for this value alone: two random Guids give the same key, so the
+    // order depends only on what the snapshot shows.
+    private string ContentKey(object? value) => WriteCompact(value, _options, new Placeholders());
 
     private string FormatKey(object key)
     {
@@ -438,9 +466,11 @@ internal sealed class SnapshotWriter
             CheckCount(items.Count);
         }
 
-        if (ValueKinds.IsUnorderedSet(type) && IsSortableScalar(items))
+        if (ValueKinds.IsUnorderedSet(type) && items.Count > 1)
         {
-            items = [.. items.OrderBy(item => item, Comparer<object?>.Create(CompareScalars))];
+            items = IsSortableScalar(items)
+                ? [.. items.OrderBy(item => item, Comparer<object?>.Create(CompareScalars))]
+                : [.. items.OrderBy(ContentKey, StringComparer.Ordinal)];
         }
 
         _json.StartArray();
@@ -479,6 +509,15 @@ internal sealed class SnapshotWriter
         }
 
         return values[0] is IComparable && ScalarFormatter.TryFormat(values[0]!, out _);
+    }
+
+    private string PendingValueMessage(string typeName)
+    {
+        var member = _location.LastOrDefault(segment => segment is ['.', ..])?[1..];
+        var hint = member is null
+            ? ""
+            : $" If this member is not data, hide it: options.IgnoreMember(\"{member}\").";
+        return $"The value contains a {typeName} at {Location}, not its result. Did you forget 'await'? Await it before taking the snapshot.{hint}";
     }
 
     private static int CompareScalars(object? left, object? right) =>
