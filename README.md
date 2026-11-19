@@ -218,6 +218,19 @@ internal static class CarboniteSetup
 - Deterministic builds (`ContinuousIntegrationBuild=true`, which rewrites source paths to `/_/`) work out of the box: the package records the test project directory at build time.
 - Comparisons ignore a UTF-8 byte order mark, CRLF line endings and trailing line feeds. Text inside objects is written with LF too, so Windows and Linux agree.
 
+## Coding agents
+
+Carbonite comes with an [Agent Skills](https://agentskills.io) skill for Claude Code, GitHub Copilot, Codex, Cursor and other coding agents. It teaches them to add snapshot tests, review the snapshot files, and accept a changed value only when they can explain every changed line. Install it in your repository and commit it, so that every agent of the team uses it:
+
+| Tool | Command |
+| --- | --- |
+| GitHub CLI 2.90 or later | `gh skill install thedotside/carbonite carbonite` (Copilot by default; `--agent claude-code`, `codex`, `cursor`…) |
+| Node.js 22.20 or later | `npx skills add thedotside/carbonite` |
+| Claude Code 2.1.275 or later | `/plugin install carbonite --marketplace thedotside/carbonite` |
+| Copilot CLI | `copilot plugin marketplace add thedotside/carbonite`, then `copilot plugin install carbonite@carbonite` |
+
+Plugins install the skill for you only. For agents that do not read skills, paste the block of the [agents guide](https://github.com/thedotside/carbonite/blob/main/docs/agents.md#sans-skill--un-bloc-pour-agentsmd) into your `AGENTS.md`.
+
 ## Requirements and limits
 
 - .NET 10 or .NET 11.

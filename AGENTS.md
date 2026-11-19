@@ -7,9 +7,12 @@ Carbonite is a snapshot testing library for beginners: one line, explicit errors
 - `tests/TheDotSide.Carbonite.Tests`: core tests without the adapter (the generic mode of xUnit, NUnit and MSTest users) and committed dogfood snapshots.
 - `tests/TheDotSide.Carbonite.TUnit.Tests`: real TUnit features (arguments, data sources, class arguments, fixtures, retries, repeats, `Assert.Multiple`).
 - `samples/Sample.Facturation.Tests`: the example quoted by the French documentation in `docs/`.
-- `docs/decisions/0001-conception.md`: the design record. Update it when a decision changes.
+- `skills/carbonite`: the Agent Skills skill that teaches coding agents to use Carbonite in their projects. `.claude-plugin/` publishes it as the plugin `carbonite@carbonite` for Claude Code and Copilot CLI.
+- `docs/decisions/`: the design records (`0001-conception.md`, `0002-agents-de-code.md`). Update them when a decision changes.
 
 Target .NET 10 and .NET 11. Build with the SDK of `global.json` and install the .NET 10 runtime too to run both test frameworks: `dotnet build`, `dotnet test`. Run the tests with `CI=true` before pushing: CI runs in strict mode with `ContinuousIntegrationBuild=true` (source paths become `/_/…`). Snapshot files are committed: review every created or changed `*.verified.*` file; never commit `*.received.*`. Test code that formats text itself must use the invariant culture.
+
+The skill describes the released behavior: change it in the same commit as a public API, a failure message, an environment variable or a file name rule. Every ```csharp block in `skills/carbonite` is a complete file that `eng/package-smoke.sh` compiles and runs against the packages; shorter code stays inline. The `version` of `.claude-plugin/plugin.json` is the `<Version>` of `Directory.Build.props`. Check with `claude plugin validate --strict .` and `gh skill publish --dry-run .`; CI runs both.
 
 For packaging changes, run `eng/pack.sh`, then `eng/package-smoke.sh` (throwaway consumer projects through the whole lifecycle, with an isolated NuGet cache). `CARBONITE_FRAMEWORKS=net11.0` limits both scripts to one framework, for example on a machine without the .NET 10 runtime; the repository still needs the SDK of `global.json`. Do not publish packages or push changes unless requested.
 

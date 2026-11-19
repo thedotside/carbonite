@@ -89,6 +89,8 @@ npx commitlint --from origin/main --to HEAD --verbose
 | `tests/TheDotSide.Carbonite.TUnit.Tests/` | Les tests de l'adaptateur TUnit. |
 | `samples/Sample.Facturation.Tests/` | L'exemple de facturation cité par cette documentation. |
 | `eng/` | `setup.sh`, `pack.sh` et `package-smoke.sh`. |
+| `skills/carbonite/` | Le skill pour les agents de code des utilisateurs (voir [Agents de code](agents.md)). |
+| `.claude-plugin/` | La marketplace et le plugin `carbonite@carbonite`, pour Claude Code et Copilot CLI. |
 | `docs/` | Cette documentation ; `docs/decisions/` contient les décisions de conception. |
 | `.github/workflows/`, `pipelines/build/` | La CI et la publication. |
 
@@ -133,7 +135,8 @@ eng/package-smoke.sh
 Le script utilise les paquets comme le ferait une équipe, dans des projets jetables créés hors du dépôt, avec un cache NuGet isolé : une ancienne copie en cache ne peut pas masquer un paquet périmé. Pour chaque framework cible :
 
 - **deux projets TUnit avec `TheDotSide.Carbonite.TUnit`**, l'un avec TUnit 1.40.0 (le plancher de l'adaptateur), l'autre avec la dernière version : chacun traverse tout le cycle de vie. Le premier passage crée les snapshots (avec un Guid remplacé). Un build déterministe, refait de zéro avec `CI=true` et `ContinuousIntegrationBuild=true`, les retrouve, et le script vérifie que l'assembly de test contient bien des chemins `/_/`. Un snapshot manquant échoue en CI et laisse un fichier reçu, puis une valeur modifiée échoue avec un diff ;
-- **un projet avec le seul paquet cœur**, en mode générique : création du snapshot, puis build déterministe vérifié de la même façon.
+- **un projet avec le seul paquet cœur**, en mode générique : création du snapshot, puis build déterministe vérifié de la même façon ;
+- **un projet avec les exemples C# du skill** (`skills/carbonite`) et la dernière version de TUnit : chaque bloc ` ```csharp ` du skill devient un fichier du projet, les tests créent leurs snapshots, puis passent en mode CI.
 
 `CARBONITE_TUNIT_VERSIONS="1.87.0"` limite les versions de TUnit essayées.
 
@@ -150,6 +153,13 @@ CARBONITE_FRAMEWORKS="net11.0" eng/package-smoke.sh
 
 Le SDK .NET 11 reste nécessaire pour compiler le dépôt et fabriquer les paquets : `global.json` l'impose.
 
+## Le skill pour les agents
+
+- `skills/carbonite` décrit le comportement publié de Carbonite aux agents de code. Changez-le dans le même commit qu'une API publique, un message d'échec, une variable d'environnement ou une règle de nommage.
+- Chaque bloc ` ```csharp ` du skill est un fichier complet, que `eng/package-smoke.sh` compile et exécute contre les paquets. Les extraits plus courts restent du code en ligne.
+- La `version` de `.claude-plugin/plugin.json` est la `<Version>` de `Directory.Build.props` : changez les deux ensemble.
+- Vérifiez avec `claude plugin validate --strict .` et `gh skill publish --dry-run .`. Le job `agents` de la CI lance les deux, ainsi que la comparaison des versions.
+
 ## CI, publication et décisions
 
 - La publication d'une version est décrite dans [Publication](publication.md).
@@ -164,7 +174,7 @@ Le SDK .NET 11 reste nécessaire pour compiler le dépôt et fabriquer les paque
 - [ ] Chaque fichier `*.verified.*` créé ou modifié a été relu ; aucun fichier `*.received.*` n'est committé.
 - [ ] Pour un changement de packaging : `eng/pack.sh`, puis `eng/package-smoke.sh`.
 - [ ] Les messages de commit suivent Conventional Commits.
-- [ ] Un changement de comportement est documenté : `README.md` en anglais, `docs/` en français.
+- [ ] Un changement de comportement est documenté : `README.md` en anglais, `docs/` en français, et `skills/carbonite` pour les agents.
 
 ---
 
