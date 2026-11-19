@@ -48,7 +48,7 @@ Not replaced automatically, so hide them or make them fixed:
 | A random token, a generated password, `Random` | `ScrubMember`, or a fixed value given by the test. |
 | A number built from a counter or from the current year | `Scrub` with a pattern, or `IgnoreMember`. |
 | The machine name, an absolute path, the current folder | `IgnoreMember`, `ScrubMember` or `Scrub`. |
-| An unordered set, a query without `OrderBy`, results of parallel tasks | Sort before the snapshot. |
+| A list or a query without `OrderBy`, results of parallel tasks | Sort before the snapshot. Carbonite already sorts sets (`HashSet<T>`, any `ISet<T>`). |
 
 To keep only what matters, snapshot an anonymous type: `Snapshot.Match(new { invoice.Number, invoice.Total })`.
 
@@ -70,18 +70,20 @@ internal static class CarboniteSetup
 }
 ```
 
+In a test project that builds as a class library (usually xUnit, NUnit or MSTest), the analyzer warning CA2255 flags `[ModuleInitializer]`; disable it around this method (`#pragma warning disable CA2255`). With TUnit, a `[Before(TestSession)]` hook works too.
+
 ## File names
 
 `__snapshots__/<File>.<Test>[_<case>][.<name>][.<n>].verified.json`, next to the test file (`.verified.txt` for a string).
 
-- `<File>.<Test>`: the test file and the test method. A helper method or a lambda inside the test keeps the name of the test.
+- `<File>.<Test>`: the file and the method that call `Snapshot.Match`. A lambda or an `async` method inside the test keeps the name of the test. A helper method keeps it with TUnit only: with the core package alone, the snapshot takes the name of the helper and goes next to the helper's file.
 - `_<case>`: the arguments of a parameterized test, with TUnit only. `[Arguments("fr-FR", 3)]` gives `_fr-FR_3`.
 - `.<name>`: the name given to `Snapshot.Match(value, "after-payment")` or `MatchesSnapshot("after-payment")`.
 - `.<n>`: the number of a further snapshot with the same name in the same test, with TUnit only (`.2`, `.3`…).
 
 Names are cleaned so that every shell accepts them: accents are removed, characters other than ASCII letters, digits, `.` and `-` become `_`, and a name longer than 120 characters is cut and ends with an 8-character hash. A name without any letter or digit, such as `"???"`, is refused.
 
-Renaming a test leaves the old file in place: Carbonite never deletes an orphaned snapshot. After the rename, run the tests, compare the new file with the old one, then `git rm` the old one in the same change. A rename that only changes letter case needs `git mv`, or Linux CI reports `Snapshot missing`.
+Renaming a test leaves the old file in place: Carbonite never deletes an orphaned snapshot. Rename the snapshot file with `git mv` before running the tests: Carbonite then compares the value with it instead of creating a new snapshot. A rename that only changes letter case needs `git mv` too, or Linux CI reports `Snapshot missing`.
 
 ## TUnit
 
@@ -125,7 +127,7 @@ The core package takes the names from the compiler: the file that calls `Snapsho
 
 - a parameterized test: `Snapshot.Match(Totals(quantity), $"case-{quantity}")`;
 - a loop: `Snapshot.Match(line, $"line-{line.Number}")`;
-- a helper shared by several tests: pass a name from each test.
+- a helper shared by several tests: call `Snapshot.Match` in each test and keep only the preparation of the value in the helper. A helper that calls `Snapshot.Match` names the snapshot after itself and stores it next to its own file.
 
 Build these names from invariant values: a number formatted with the machine culture (`1,5` on a French machine) gives a different file name on CI.
 

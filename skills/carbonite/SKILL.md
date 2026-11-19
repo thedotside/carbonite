@@ -1,6 +1,6 @@
 ---
 name: carbonite
-description: Use when writing, running or fixing snapshot tests in a .NET project that uses Carbonite (TheDotSide.Carbonite or TheDotSide.Carbonite.TUnit packages, Snapshot.Match, MatchesSnapshot, __snapshots__ folders with .verified.json or .verified.txt files), when a test fails with "Snapshot mismatch", "Snapshot missing", "Snapshot conflict" or "Snapshot format changed", or when adding snapshot tests to a .NET project that has no snapshot library yet.
+description: Use when writing, running or fixing snapshot tests in a .NET project that uses Carbonite (TheDotSide.Carbonite or TheDotSide.Carbonite.TUnit package references, MatchesSnapshot, .verified.json or .verified.txt files in __snapshots__ folders), when a test fails with "Snapshot mismatch", "Snapshot missing", "Snapshot conflict", "Snapshot name conflict" or "Snapshot format changed", or when adding snapshot tests to a .NET project that has no snapshot library yet.
 license: MIT
 ---
 
@@ -12,8 +12,8 @@ Violating the letter of these rules is violating their spirit.
 
 ## Check the project first
 
-- Carbonite is in use when a test project references `TheDotSide.Carbonite` or `TheDotSide.Carbonite.TUnit`, or has `__snapshots__` folders.
-- Another snapshot library (Verify, Snapshooter…) also writes `.verified` and `.received` files. Follow that library instead, and do not add Carbonite next to it.
+- Carbonite is in use when a test project, or its `Directory.Packages.props`, references `TheDotSide.Carbonite` or `TheDotSide.Carbonite.TUnit`. A `__snapshots__` folder or a `Snapshot.Match` call alone proves nothing: Snapshooter uses both.
+- Another snapshot library (Verify, Snapshooter…) has its own files and commands. Follow that library instead, and do not add Carbonite next to it.
 - No snapshot library yet: install Carbonite.
 
 ## Install
@@ -23,7 +23,7 @@ Violating the letter of these rules is violating their spirit.
 | TUnit 1.40 or later | `dotnet add package TheDotSide.Carbonite.TUnit` |
 | xUnit, NUnit, MSTest | `dotnet add package TheDotSide.Carbonite` |
 
-Test projects target `net10.0` or `net11.0`. The TUnit package brings the core package: reference only that one. There is nothing to configure.
+Test projects target `net10.0` or `net11.0`. A test project on an older framework cannot use Carbonite: tell the developer instead of changing its target framework. The TUnit package brings the core package: reference only that one. There is nothing to configure.
 
 Once per repository, add what is missing:
 
@@ -61,15 +61,15 @@ public class OrderSnapshotTests
 
 - `Snapshot.Match(value)` works with every test framework. It is synchronous: pass a result, never a `Task` (`Snapshot.Match(await LoadAsync())`).
 - With TUnit, `await Assert.That(value).MatchesSnapshot()` is the assertion form, and it also accepts a `Task`.
-- A `string` is stored as text (`.verified.txt`), any other value as indented JSON (`.verified.json`).
+- A `string` is stored as text and an XML node (`XDocument`, `XElement`) as indented XML, both in `.verified.txt`; any other value is stored as indented JSON (`.verified.json`).
 - `Guid`, `DateTime` and `DateTimeOffset` values become `Guid_1`, `DateTime_1`, `DateTimeOffset_1`… by themselves. Hide every other value that changes between runs (a generated number, a token, a `DateOnly`, the current year, a machine path): `options => options.ScrubMember("Token")`, `.IgnoreMember("Password")` or `.Scrub(@"INV-\d{4}-\d{4}", "INV-XXXX-XXXX")`. See [options](references/options.md).
 - Text that your code formats uses the machine culture (`1299,80` on a French machine): snapshot an object, or format with `CultureInfo.InvariantCulture`.
 
 Names:
 
 - The file is `__snapshots__/<File>.<Test>[_<case>][.<name>][.<n>].verified.json`, next to the test file.
-- TUnit names each case after its arguments (`OrderSnapshotTests.An_order_per_country_FR`) and numbers further snapshots of one test.
-- xUnit, NUnit and MSTest: Carbonite cannot see the arguments. Give each case, loop iteration and shared helper call its own name, `Snapshot.Match(value, $"case-{id}")`, or the run fails with `Snapshot conflict`.
+- TUnit names each case after its arguments (`OrderSnapshotTests.An_order_per_country_FR`), numbers further snapshots of one test, and keeps the name of the test in a helper method that the test calls.
+- xUnit, NUnit and MSTest: Carbonite only sees the file and the method that call `Snapshot.Match`. Give each case of a parameterized test, each loop turn and each further snapshot of one test its own name, `Snapshot.Match(value, $"case-{id}")`, or the run fails with `Snapshot conflict`. Call `Snapshot.Match` in the test itself: inside a helper method, the snapshot takes the name of the helper and goes next to the helper's file.
 
 ## Create the snapshots
 
@@ -77,11 +77,11 @@ Names:
 2. Read every created file. Its values become the expected values: check them against what the code should produce. Never write or edit a `.verified` file by hand.
 3. Run `dotnet test` again. A failure now means a value that changes between runs: hide it, delete the snapshots you just created, and start again at 1.
 4. Run the tests as CI does: `CI=true dotnet test` (PowerShell: `$env:CI="true"; dotnet test`, then `Remove-Item Env:CI`).
-5. Commit the `__snapshots__` files with the tests. Never commit `*.received.*`.
+5. The `__snapshots__` files belong with the tests: when you commit, commit them together. Never commit `*.received.*`.
 
 ## When a snapshot test fails
 
-`Snapshot mismatch` prints a unified diff (`-` verified, `+` received) and writes the new value to a `.received` file next to the verified one. That is everything you need to decide: run nothing else first.
+`Snapshot mismatch` prints a unified diff (`-` verified, `+` received) and writes the new value to a `.received` file next to the verified one. That is everything you need to decide. Do not set `SNAPSHOT_UPDATE`, and do not touch a snapshot file, before you have decided.
 
 Decide for every changed line, from the task you were given or from the commit that changed the code:
 
@@ -96,10 +96,10 @@ When the diff mixes both, fix the code first, run the tests again, and accept on
 Accept only after that decision, with one of:
 
 - bash, zsh: `SNAPSHOT_UPDATE=1 dotnet test`
-- PowerShell: `$env:SNAPSHOT_UPDATE=1; dotnet test`, then `Remove-Item Env:SNAPSHOT_UPDATE` (otherwise the variable stays set)
+- PowerShell: `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }` (the variable otherwise stays set, and every later `dotnet test` rewrites snapshots)
 - moving the `.received` file onto the `.verified` file.
 
-Then read `git diff` on the `__snapshots__` files: only the lines you explained may move. Name the accepted changes in your commit message and your report.
+Then check `git status` and `git diff` on the `__snapshots__` folders: only the files and lines you explained may change (`git diff` alone does not show new files). Name the accepted changes in your commit message and your report.
 
 Other messages (`Snapshot missing`, `Snapshot conflict`, `Snapshot format changed`, a `Task` or a `Stream` instead of a value…): see [failures](references/failures.md).
 

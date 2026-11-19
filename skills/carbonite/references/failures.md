@@ -15,11 +15,11 @@ There is no verified file and the tests run on CI, or in a shell where a CI vari
 - a `.gitignore` rule excludes it: `git check-ignore -v <file>`;
 - the snapshot name changed: a renamed test, an argument that changes on every run, a name built with the machine culture, a rename that only changes letter case on a Linux CI.
 
-Fix: on a developer machine, run the tests (the snapshot is created), review the file, commit it. In a shell where a CI variable is set, review the `.received` file and rename it from `.received.` to `.verified.`.
+Fix: when the name changed, fix the name first (for a renamed test, `git mv` the old snapshot file to the new name). For a snapshot that was never committed: on a developer machine, run the tests (the snapshot is created), review the file and commit it; in a shell where a CI variable is set, review the `.received` file and rename it from `.received.` to `.verified.`.
 
 ### Snapshot format changed
 
-The value was a string, stored as `.verified.txt`, and is now an object, stored as `.verified.json`, or the reverse. If that change is intended, delete the old file or run with `SNAPSHOT_UPDATE=1`, which writes the new file and deletes the old one. Otherwise, pass the same kind of value as before.
+The value was a string or XML, stored as `.verified.txt`, and is now an object, stored as `.verified.json`, or the reverse. No `.received` file is written. If that change is intended, run with `SNAPSHOT_UPDATE=1` on a developer machine, which writes the new file and deletes the old one. In a shell where a CI variable is set, `git rm` the old file, run the tests, then review the `.received` file and rename it to `.verified`. Otherwise, pass the same kind of value as before.
 
 ### Snapshot conflict
 
@@ -46,7 +46,7 @@ Carbonite stores snapshots next to the test source file and cannot find it: the 
 
 ### Carbonite received a Task, not its result
 
-Await it: `Snapshot.Match(await LoadAsync())`. With TUnit, `await Assert.That(LoadAsync()).MatchesSnapshot()` awaits it for you. The same applies to `ValueTask`.
+Await it: `Snapshot.Match(await LoadAsync())`. The same applies to a `ValueTask`. With TUnit, `await Assert.That(LoadAsync()).MatchesSnapshot()` awaits a `Task` for you; await a `ValueTask` yourself first.
 
 ### Carbonite received an IAsyncEnumerable
 
@@ -92,7 +92,7 @@ A value changes on its own. Find it in the diff and hide it or make it fixed (se
 
 ### The lines of the diff look identical
 
-The message adds `Note: the only differences are whitespace (spaces, tabs or line breaks).` Usually a non-breaking space from culture formatting (U+00A0 or U+202F), a tab, trailing spaces, or an editor that touched the verified file. Compare the bytes, `od -c <file>` or `Format-Hex <file>`, then fix the source of the difference. For culture-dependent text, format with `CultureInfo.InvariantCulture`, or replace those spaces: `options.Scrub(@"[  ]", " ")`.
+The message adds `Note: the only differences are whitespace (spaces, tabs or line breaks).` Usually a non-breaking space from culture formatting (U+00A0 or U+202F), a tab, trailing spaces, or an editor that touched the verified file. Compare the bytes, `od -c <file>` or `Format-Hex <file>`, then fix the source of the difference. For culture-dependent text, format with `CultureInfo.InvariantCulture`, or replace those spaces: `options.Scrub(@"[\u00A0\u202F]", " ")`.
 
 ### The test passes locally but fails on CI
 
