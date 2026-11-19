@@ -28,6 +28,37 @@ jobs:
         uses: ./pipelines/build
         with:
           artifact-name: ${{ matrix.os }}
+  agents:
+    # The agent skill (skills/carbonite) and its plugin manifests (.claude-plugin), checked with
+    # the official validators. The package smoke test compiles and runs the skill's C# examples.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+      - name: Check that the plugin version is the package version
+        run: |
+          package="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)"
+          plugin="$(jq -r .version .claude-plugin/plugin.json)"
+          if [[ "${plugin}" != "${package}" ]]; then
+            echo "::error file=.claude-plugin/plugin.json::version is '${plugin}' but Directory.Build.props says '${package}': change both together."
+            exit 1
+          fi
+      - name: Validate the skill against the Agent Skills specification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh --version
+          gh skill publish --dry-run .
+      - name: Validate the marketplace and the plugin
+        env:
+          DISABLE_TELEMETRY: '1'
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+        run: npx --yes @anthropic-ai/claude-code@2.1.321 plugin validate --strict .
   commits:
     # OUT-08 and TST-11: conventional commit messages, and PR titles for squash merges.
     if: github.event_name == 'pull_request'
