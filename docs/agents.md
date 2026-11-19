@@ -14,42 +14,44 @@ Le skill ne contient aucun script : son installation n'exécute rien.
 
 ## Installer le skill
 
-Installez-le dans le dépôt de votre projet, puis committez-le. Tous les agents de l'équipe en profitent, y compris ceux qui travaillent dans le cloud ou relisent les pull requests.
+Pour toute l'équipe, installez-le dans le dépôt de votre projet, puis committez le dossier créé. Tous les agents qui travaillent sur le dépôt en profitent, y compris ceux qui tournent dans le cloud ou relisent les pull requests.
 
 | Outil | Commande |
 | --- | --- |
 | GitHub CLI 2.90 ou plus | `gh skill install thedotside/carbonite carbonite` |
 | Node.js 22.20 ou plus | `npx skills add thedotside/carbonite` |
+
+- `gh skill install` écrit `.agents/skills/carbonite`, un dossier que lisent Copilot, Codex, Cursor, Gemini CLI et d'autres. Ajoutez `--agent claude-code` pour `.claude/skills/carbonite`, que Claude Code charge sans rien installer. `gh skill update` met le dossier à jour.
+- `npx skills add` demande pour quels agents installer le skill, puis l'installe dans leurs dossiers du projet. `npx skills update` le met à jour.
+
+Pour vous seul, sous forme de plugin :
+
+| Outil | Commande |
+| --- | --- |
 | Claude Code 2.1.275 ou plus | `/plugin install carbonite --marketplace thedotside/carbonite` |
 | Claude Code plus ancien | `/plugin marketplace add thedotside/carbonite`, puis `/plugin install carbonite@carbonite` |
 | Copilot CLI | `copilot plugin marketplace add thedotside/carbonite`, puis `copilot plugin install carbonite@carbonite` |
 
-- `gh skill install` installe pour Copilot par défaut, dans `.agents/skills/carbonite`, un dossier que lisent aussi Codex, Cursor, Gemini CLI et d'autres. `--agent claude-code` vise `.claude/skills/carbonite`, que Claude Code charge sans rien installer. Committez le dossier créé. `gh skill update` le met à jour à partir de la dernière release de Carbonite.
-- `npx skills add` demande pour quels agents installer le skill, puis l'installe dans leurs dossiers du projet. Committez-les. `npx skills update` le met à jour depuis `main`.
-- Un plugin Claude Code ou Copilot CLI s'installe pour vous seul, pas pour le dépôt, et suit les versions de Carbonite. Pour une équipe, préférez le dossier committé.
-
 Tant que les paquets ne sont pas publiés sur NuGet, la commande `dotnet add package` que le skill indique échoue.
+
+## Quelle version du skill
+
+- `gh skill install` et `gh skill update` prennent le skill de la dernière release de Carbonite : il décrit les paquets publiés.
+- `npx skills add`, `npx skills update` et les plugins prennent la branche `main`. Entre deux versions, elle peut décrire une nouveauté qui n'est pas encore sur NuGet. Un plugin Claude Code installé se met à jour quand le numéro de version de Carbonite change.
+
+## Les agents dans le cloud
+
+Un agent qui travaille dans le cloud, comme l'agent de Copilot sur GitHub, tourne souvent sur un runner de CI. Carbonite y voit les variables `CI` ou `GITHUB_ACTIONS`, et applique son mode strict : il ne crée aucun snapshot. Le skill le sait. L'agent relit la valeur écrite dans le fichier `.received`, renomme ce fichier en `.verified`, puis relance les tests. Il ne touche jamais au pipeline.
 
 ## Sans skill : un bloc pour AGENTS.md
 
-Pour un agent qui ne lit pas les skills, ou en rappel dans les instructions du projet, collez ce bloc dans `AGENTS.md`, `CLAUDE.md` ou `.github/copilot-instructions.md`. Il est en anglais, comme le skill :
-
-```markdown
-## Snapshot tests (Carbonite)
-
-- Snapshot tests use Carbonite: `Snapshot.Match(value)`, or `await Assert.That(value).MatchesSnapshot()` with TUnit. Snapshots live in `__snapshots__/*.verified.json` or `.verified.txt` next to the tests and are committed. `*.received.*` files are never committed.
-- Create a snapshot by running `dotnet test` on a developer machine. Read every created file before committing it, then run the tests again: a failure on the second run means a value that changes between runs (hide it with `ScrubMember`, `IgnoreMember` or `Scrub`).
-- When a snapshot test fails, read the diff first. Accept a change (`SNAPSHOT_UPDATE=1 dotnet test`, or move the `.received` file onto the `.verified` one) only when every changed line is explained by the task or by the commit that changed the code. Otherwise fix the code, or leave the test red and show the diff. Never accept a snapshot to make a build green.
-- With xUnit, NUnit or MSTest, give each case of a parameterized test its own name: `Snapshot.Match(value, $"case-{id}")`.
-- On CI, Carbonite never creates or updates snapshots. Never set `SNAPSHOT_UPDATE` in a pipeline. In a shell where `CI` or `GITHUB_ACTIONS` is set, review the `.received` file, then rename it to `.verified`.
-- Details: https://github.com/thedotside/carbonite/tree/main/skills/carbonite
-```
+Pour un agent qui ne lit pas les skills, ou en rappel dans les instructions du projet, le [README](../README.md#coding-agents) donne un bloc à coller dans `AGENTS.md`, `CLAUDE.md` ou `.github/copilot-instructions.md`. Il est en anglais, comme le skill. Il donne les paquets, l'API, la règle de relecture, la forme PowerShell qui retire `SNAPSHOT_UPDATE` après usage, et le comportement en CI.
 
 ## Pour les mainteneurs
 
 - Le skill est dans `skills/carbonite` : `SKILL.md` pour le travail courant, `references/` pour les détails.
 - `.claude-plugin/marketplace.json` et `.claude-plugin/plugin.json` publient la racine du dépôt comme plugin `carbonite@carbonite`, pour Claude Code et Copilot CLI.
-- Les règles d'entretien sont dans [Développement](developpement.md#le-skill-pour-les-agents) ; la décision est consignée dans [0002](decisions/0002-agents-de-code.md).
+- Les règles d'entretien sont dans [Développement](developpement.md#le-skill-pour-les-agents). La release GitHub dont dépend `gh skill install` fait partie de la [publication](publication.md). La décision est consignée dans [0002](decisions/0002-agents-de-code.md).
 
 ---
 

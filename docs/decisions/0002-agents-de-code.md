@@ -104,16 +104,24 @@ le skill de chaque nouvelle version de Carbonite.
 
 ### Bloc pour `AGENTS.md`
 
-`docs/agents.md` et le README donnent un bloc court à coller dans `AGENTS.md`, `CLAUDE.md` ou
-`.github/copilot-instructions.md` : quel paquet, quelle API, et les trois règles.
+Le README donne un bloc court à coller dans `AGENTS.md`, `CLAUDE.md` ou
+`.github/copilot-instructions.md`. Il contient les paquets et leurs namespaces, l'API, la règle de
+relecture, une forme PowerShell qui retire `SNAPSHOT_UPDATE` après usage, et le comportement en
+CI. `docs/agents.md` y renvoie : il n'existe qu'une copie du bloc.
 
 ### Garde-fous
 
 - La CI lance les validateurs officiels : `claude plugin validate --strict .`, dans une version
-  épinglée, et `gh skill publish --dry-run`, qui valide sans rien publier. Elle vérifie aussi que
-  la `version` de `plugin.json` est celle de `Directory.Build.props`.
+  épinglée, et `gh skill publish --dry-run`, qui valide sans rien publier.
+- `eng/check-agents.sh`, lancé aussi par la CI, vérifie trois points :
+  - la `version` de `plugin.json` est celle de `Directory.Build.props` ;
+  - aucun composant de plugin n'est suivi à la racine du dépôt, qui est la racine du plugin
+    (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) ;
+  - chaque bloc de code du skill porte une étiquette connue.
 - `eng/package-smoke.sh` compile et exécute chaque bloc ` ```csharp ` du skill contre les paquets,
   d'abord comme sur un poste de développeur (création), puis en mode CI (comparaison).
+  `eng/skill-examples.sh` extrait ces blocs ; il refuse une étiquette inconnue (` ```cs `,
+  ` ```C# `…), pour qu'une faute de frappe ne sorte pas un exemple du contrôle.
 - `AGENTS.md` demande de mettre à jour le skill dans le même changement que l'API, un message
   d'erreur ou une variable d'environnement.
 
@@ -130,15 +138,17 @@ Résultat, le 19/11/2026, avec Claude Sonnet :
   réussi l'installation, puis le mode CI. Mais il a lancé `SNAPSHOT_UPDATE=1` avant de lire le
   diff, et il a accepté la régression qu'il venait de remarquer : « the commit presents it as
   deliberate », « the snapshot update is easy to revert ».
-- **Avec le skill**, deux agents neufs sur deux ont lu le diff d'abord, corrigé la régression dans
-  le code, et accepté seulement le changement voulu. L'installation et le mode CI ont réussi aussi.
+- **Avec le skill**, trois agents neufs sur trois ont lu le diff d'abord, corrigé la régression
+  dans le code, et accepté seulement le changement voulu ; le troisième avait le skill corrigé
+  après la relecture finale. L'installation et le mode CI ont réussi aussi.
 
 Le poids du skill porte donc sur la décision d'accepter : la règle, le tableau des excuses
 relevées et les signaux d'alerte.
 
 ## Laissé à l'équipe
 
-- Créer une release : `gh skill install` installera alors le skill de cette version.
+- Créer une release GitHub à chaque version, comme le décrit désormais `docs/publication.md` :
+  `gh skill install` installe le skill de la dernière release.
 - Ajouter le topic `agent-skills` au dépôt, pour que `gh skill search` le trouve.
 - Rendre obligatoire le check `agents` de la CI dans le ruleset de `main`.
 - Inscrire le dépôt dans des annuaires (skills.sh, Context7).
@@ -148,7 +158,11 @@ relevées et les signaux d'alerte.
 - Le nom `carbonite@carbonite` : marketplace et plugin portent le nom de la bibliothèque.
 - Le skill est en anglais, comme le README : les agents et les équipes étrangères le lisent mieux.
 - Le plugin a la racine du dépôt pour source : son cache contient tout le dépôt, qui est petit.
-  En échange, le skill reste dans `skills/`, où tous les installeurs le cherchent.
+  En échange, le skill reste dans `skills/`, où tous les installeurs le cherchent. Le risque :
+  un composant de plugin ajouté à la racine (un `.mcp.json` de projet, des hooks) atteindrait
+  chaque utilisateur du plugin. `eng/check-agents.sh` le refuse en CI.
+- Le skill de `main` décrit `main`, comme le README. `npx skills` et les plugins peuvent donc
+  décrire une nouveauté pas encore publiée sur NuGet ; seul `gh skill install` suit les releases.
 - Le validateur de Claude Code est un outil d'Anthropic, installé en CI par npm dans une version
   épinglée, uniquement pour valider les manifestes.
 - La `version` du plugin suit celle des paquets : une correction du skill n'atteint les plugins

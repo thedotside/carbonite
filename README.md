@@ -220,16 +220,37 @@ internal static class CarboniteSetup
 
 ## Coding agents
 
-Carbonite comes with an [Agent Skills](https://agentskills.io) skill for Claude Code, GitHub Copilot, Codex, Cursor and other coding agents. It teaches them to add snapshot tests, review the snapshot files, and accept a changed value only when they can explain every changed line. Install it in your repository and commit it, so that every agent of the team uses it:
+Carbonite comes with an [Agent Skills](https://agentskills.io) skill for Claude Code, GitHub Copilot, Codex, Cursor and other coding agents. It teaches them to add snapshot tests, review the snapshot files, and accept a changed value only when they can explain every changed line.
+
+For the whole team, install it in your repository and commit the folder it creates:
 
 | Tool | Command |
 | --- | --- |
-| GitHub CLI 2.90 or later | `gh skill install thedotside/carbonite carbonite` (Copilot by default; `--agent claude-code`, `codex`, `cursor`…) |
-| Node.js 22.20 or later | `npx skills add thedotside/carbonite` |
+| GitHub CLI 2.90 or later | `gh skill install thedotside/carbonite carbonite` writes `.agents/skills/carbonite`, read by Copilot, Codex, Cursor and others; add `--agent claude-code` for `.claude/skills/carbonite`. |
+| Node.js 22.20 or later | `npx skills add thedotside/carbonite` asks which agents to install it for. |
+
+For yourself only, as a plugin:
+
+| Tool | Command |
+| --- | --- |
 | Claude Code 2.1.275 or later | `/plugin install carbonite --marketplace thedotside/carbonite` |
 | Copilot CLI | `copilot plugin marketplace add thedotside/carbonite`, then `copilot plugin install carbonite@carbonite` |
 
-Plugins install the skill for you only. For agents that do not read skills, paste the block of the [agents guide](https://github.com/thedotside/carbonite/blob/main/docs/agents.md#sans-skill--un-bloc-pour-agentsmd) into your `AGENTS.md`.
+`gh skill install` takes the skill of the latest release. The other commands take the `main` branch, which can describe features that are not on NuGet yet.
+
+For agents that do not read skills, paste this block into your `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`:
+
+```markdown
+## Snapshot tests (Carbonite)
+
+- Snapshot tests use Carbonite: the package `TheDotSide.Carbonite.TUnit` with TUnit, `TheDotSide.Carbonite` with xUnit, NUnit or MSTest. Write `Snapshot.Match(value)` (`using TheDotSide.Carbonite;`), or `await Assert.That(value).MatchesSnapshot()` with TUnit (`using TheDotSide.Carbonite.TUnit;`).
+- Snapshots live in `__snapshots__/*.verified.json` or `.verified.txt` next to the tests, and are committed with them. `*.received.*` files are never committed.
+- Create a snapshot by running `dotnet test` on a developer machine. Read every created file, then run the tests again: a failure on the second run means a value that changes between runs (hide it with `ScrubMember`, `IgnoreMember` or `Scrub`).
+- When a snapshot test fails, read the diff first. Accept a change only when every changed line is explained by the task or by the commit that changed the code: `SNAPSHOT_UPDATE=1 dotnet test` (bash, zsh), `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }` (PowerShell), or move the `.received` file onto the `.verified` one. Otherwise fix the code, or leave the test red and show the diff. Never accept a snapshot to make a build green.
+- With xUnit, NUnit or MSTest, give each case of a parameterized test, each loop turn and each further snapshot of a test its own name: `Snapshot.Match(value, $"case-{id}")`.
+- On CI, Carbonite never creates or updates snapshots: never set `SNAPSHOT_UPDATE` in a pipeline. In a shell where `CI` or `GITHUB_ACTIONS` is set, review the `.received` file, then rename it to `.verified`.
+- Details: https://github.com/thedotside/carbonite/tree/main/skills/carbonite
+```
 
 ## Requirements and limits
 
