@@ -105,25 +105,10 @@ EOF
 }
 
 # Every ```csharp block of the agent skill (skills/carbonite) is a complete file: each becomes a
-# source file of the project, so that the examples agents copy compile and pass. Shorter code in
-# the skill is inline code. Fences may be indented, for example inside a list.
+# source file of the project, so that the examples agents copy compile and pass.
 extract_skill_examples() {
-  local skill="$repo/skills/carbonite" count
-  count="$(awk -v dir="$1" '
-    /^[[:space:]]*```/ {
-      if (inside) { inside = 0; close(file); next }
-      if ($0 ~ /^[[:space:]]*```csharp[[:space:]]*$/) {
-        match($0, /^[[:space:]]*/)
-        indent = RLENGTH
-        file = sprintf("%s/SkillExample%02d.cs", dir, ++count)
-        inside = 1
-        next
-      }
-    }
-    inside { print substr($0, indent + 1) > file }
-    END { print count + 0 }
-  ' "$skill/SKILL.md" "$skill"/references/*.md)"
-  [[ "$count" -gt 0 ]] || fail "no \`\`\`csharp block found in skills/carbonite"
+  local count
+  count="$(bash "$repo/eng/skill-examples.sh" "$1")" || fail "the C# examples of skills/carbonite cannot be extracted"
   echo "   $count examples from skills/carbonite"
 }
 
