@@ -159,7 +159,8 @@ Le SDK .NET 11 reste nécessaire pour compiler le dépôt et fabriquer les paque
 - Chaque bloc ` ```csharp ` du skill est un fichier complet, que `eng/package-smoke.sh` compile et exécute contre les paquets. Les extraits plus courts restent du code en ligne. Les autres blocs portent une étiquette connue (`bash`, `yaml`, `text`…) : `eng/skill-examples.sh` refuse les autres, pour qu'une faute de frappe ne sorte pas un exemple du contrôle.
 - La `version` de `.claude-plugin/plugin.json` est la `<Version>` de `Directory.Build.props` : changez les deux ensemble.
 - La racine du dépôt est la racine du plugin. N'y ajoutez aucun composant de plugin (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) : il atteindrait chaque utilisateur du plugin.
-- Vérifiez avec `eng/check-agents.sh` (version, racine, étiquettes des blocs), `claude plugin validate --strict .` et `gh skill publish --dry-run .`. Le job `agents` de la CI lance les trois.
+- Partout hors de `tests/`, une commande PowerShell qui définit `SNAPSHOT_UPDATE` le retire, même si les tests échouent : `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }`. PowerShell garde la variable pour toute la session, et les agents copient ces commandes depuis le skill, le README et le guide.
+- Vérifiez avec `eng/check-agents.sh` (version, racine, forme PowerShell, étiquettes des blocs), `claude plugin validate --strict .` et `gh skill publish --dry-run .`. Le job `agents` de la CI lance les trois.
 
 ## CI, publication et décisions
 
