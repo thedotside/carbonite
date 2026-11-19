@@ -130,7 +130,7 @@ If the new value is correct, accept it, then review the change in your pull requ
   - replace the verified file with the received file, or
   - run the tests again with SNAPSHOT_UPDATE=1:
       bash, zsh:   SNAPSHOT_UPDATE=1 dotnet test
-      PowerShell:  $env:SNAPSHOT_UPDATE=1; dotnet test
+      PowerShell:  $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 ```
 
 ## Accepting a change
@@ -141,11 +141,10 @@ bash, zsh:
 SNAPSHOT_UPDATE=1 dotnet test
 ```
 
-PowerShell keeps the variable for the rest of the session, so remove it afterwards:
+PowerShell would keep the variable for the rest of the session, and every later `dotnet test` would rewrite the snapshots that differ. This form removes it, even when tests fail:
 
 ```powershell
-$env:SNAPSHOT_UPDATE=1; dotnet test
-Remove-Item Env:SNAPSHOT_UPDATE
+$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 ```
 
 Or replace the `.verified` file with the `.received` one. Either way, the diff of the snapshot file is what your reviewers read in the pull request. Keep received files out of Git:

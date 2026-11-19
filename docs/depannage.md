@@ -285,12 +285,12 @@ Pour voir le problème avant de pousser, lancez `CI=true dotnet test` (bash, zsh
 
 - Une variable de CI est définie sur votre poste, par exemple `CI=true` dans votre profil de shell ou dans la configuration de votre IDE. Carbonite se croit en CI et ignore la mise à jour ; le message le dit (`SNAPSHOT_UPDATE is ignored on continuous integration`).
 - La valeur n'est pas reconnue. Carbonite accepte `1`, `true`, `yes` et `on`, sans tenir compte de la casse.
-- La syntaxe ne correspond pas au shell : `SNAPSHOT_UPDATE=1 dotnet test` ne fonctionne pas en PowerShell. Utilisez `$env:SNAPSHOT_UPDATE=1; dotnet test`.
+- La syntaxe ne correspond pas au shell : `SNAPSHOT_UPDATE=1 dotnet test` ne fonctionne pas en PowerShell. Utilisez `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }`.
 - Deux valeurs visent le même snapshot : la mise à jour est refusée (`Snapshot conflict`).
 
 ### Les snapshots se mettent à jour tout seuls
 
-**Cause.** Dans une session PowerShell, `$env:SNAPSHOT_UPDATE=1` reste défini jusqu'à la fermeture du terminal. Chaque `dotnet test` réécrit alors les références qui diffèrent, et la sortie des tests indique `Carbonite updated the snapshot …`. Une configuration d'exécution de l'IDE qui définit la variable a le même effet.
+**Cause.** Dans une session PowerShell, `$env:SNAPSHOT_UPDATE=1` reste défini jusqu'à la fermeture du terminal si rien ne le retire, par exemple quand il est lancé sans la forme `try { … } finally { Remove-Item Env:SNAPSHOT_UPDATE }`. Chaque `dotnet test` réécrit alors les références qui diffèrent, et la sortie des tests indique `Carbonite updated the snapshot …`. Une configuration d'exécution de l'IDE qui définit la variable a le même effet.
 
 **Correction.** Retirez la variable, `Remove-Item Env:SNAPSHOT_UPDATE`, puis relisez avec `git diff` les références modifiées.
 

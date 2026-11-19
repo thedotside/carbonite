@@ -14,7 +14,8 @@ internal static class SnapshotMessages
         + "  - replace the verified file with the received file, or\n"
         + "  - run the tests again with SNAPSHOT_UPDATE=1:\n"
         + "      bash, zsh:   SNAPSHOT_UPDATE=1 dotnet test\n"
-        + "      PowerShell:  $env:SNAPSHOT_UPDATE=1; dotnet test";
+        // PowerShell keeps $env: variables for the session: remove it, even when the tests fail.
+        + "      PowerShell:  $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }";
 
     internal static string Mismatch(
         string title,
