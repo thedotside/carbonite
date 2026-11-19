@@ -219,7 +219,7 @@ Carbonite: the TUnit adapter could not be loaded (<raison>). Snapshots use the g
 
 | Cause | Exemple | Correction |
 | --- | --- | --- |
-| Un ordre non garanti | un ensemble d'objets (`HashSet<Client>`), une requête sans tri, des résultats de tâches parallèles | Triez avant de vérifier : `.OrderBy(c => c.Nom)`. |
+| Un ordre non garanti | une liste remplie dans un ordre qui varie, une requête sans tri, des résultats de tâches parallèles | Triez avant de vérifier : `.OrderBy(c => c.Nom)`. Les ensembles (`HashSet<T>`, tout `ISet<T>`) n'en ont pas besoin : Carbonite les trie déjà (voir [Format des fichiers](format.md#collections)). |
 | Une valeur tirée au hasard | un jeton, un mot de passe généré, `Random` | `ScrubMember("Jeton")`, ou une valeur fixe injectée par le test. |
 | Une date ou une heure non remplacée | `DateOnly`, `TimeOnly`, `TimeSpan`, une date dans une chaîne, `DontScrubDates()` | Une horloge fixe (`TimeProvider`), `ScrubMember` ou `Scrub`. |
 | Un Guid dans une chaîne | `"commande c4c4ea33-…"` | `Scrub` avec un motif de Guid (voir [Valeurs dynamiques](valeurs-dynamiques.md#remplacer-du-texte--scrubmotif-remplacement)). |
