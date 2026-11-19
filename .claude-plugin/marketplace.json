@@ -1,0 +1,17 @@
+{
+  "name": "carbonite",
+  "description": "Carbonite, snapshot testing for .NET, packaged for coding agents.",
+  "owner": {
+    "name": "The Dot Side",
+    "url": "https://github.com/thedotside"
+  },
+  "plugins": [
+    {
+      "name": "carbonite",
+      "source": "./",
+      "description": "Teaches coding agents to add Carbonite snapshot tests to .NET projects, review the snapshot files and handle failures safely.",
+      "category": "testing",
+      "tags": ["dotnet", "csharp", "testing", "snapshot-testing", "tunit"]
+    }
+  ]
+}
