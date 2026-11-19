@@ -1,0 +1,13 @@
+{
+  "name": "carbonite",
+  "version": "0.1.0",
+  "description": "Teaches coding agents to add Carbonite snapshot tests to .NET projects, review the snapshot files and handle failures safely.",
+  "author": {
+    "name": "The Dot Side",
+    "url": "https://github.com/thedotside"
+  },
+  "homepage": "https://github.com/thedotside/carbonite/blob/main/docs/agents.md",
+  "repository": "https://github.com/thedotside/carbonite",
+  "license": "MIT",
+  "keywords": ["dotnet", "csharp", "testing", "snapshot-testing", "tunit", "xunit", "nunit", "mstest"]
+}
