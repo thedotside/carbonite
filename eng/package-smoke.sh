@@ -7,6 +7,7 @@
 #   2. a deterministic build (ContinuousIntegrationBuild=true, paths rewritten to /_/) matches them;
 #   3. on CI, a missing snapshot fails;
 #   4. a changed value fails with a diff and a received file.
+# A last project compiles and runs the C# examples of the agent skill (skills/carbonite).
 #
 # Usage: eng/package-smoke.sh [version]   (run eng/pack.sh first)
 # CARBONITE_FRAMEWORKS="net11.0" limits the frameworks, for example without the .NET 10 runtime.
@@ -103,6 +104,29 @@ EOF
   printf 'bin/\nobj/\n*.received.*\n' > "$directory/.gitignore"
 }
 
+# Every ```csharp block of the agent skill (skills/carbonite) is a complete file: each becomes a
+# source file of the project, so that the examples agents copy compile and pass. Shorter code in
+# the skill is inline code. Fences may be indented, for example inside a list.
+extract_skill_examples() {
+  local skill="$repo/skills/carbonite" count
+  count="$(awk -v dir="$1" '
+    /^[[:space:]]*```/ {
+      if (inside) { inside = 0; close(file); next }
+      if ($0 ~ /^[[:space:]]*```csharp[[:space:]]*$/) {
+        match($0, /^[[:space:]]*/)
+        indent = RLENGTH
+        file = sprintf("%s/SkillExample%02d.cs", dir, ++count)
+        inside = 1
+        next
+      }
+    }
+    inside { print substr($0, indent + 1) > file }
+    END { print count + 0 }
+  ' "$skill/SKILL.md" "$skill"/references/*.md)"
+  [[ "$count" -gt 0 ]] || fail "no \`\`\`csharp block found in skills/carbonite"
+  echo "   $count examples from skills/carbonite"
+}
+
 for framework in $frameworks; do
 for tunit in $tunit_versions; do
   echo "== $framework, TheDotSide.Carbonite.TUnit with TUnit $tunit"
@@ -177,6 +201,15 @@ EOF
   rm -rf "$project/bin" "$project/obj"
   run "$project" "$framework-core-deterministic" pass CI=true -- -p:ContinuousIntegrationBuild=true
   expect_mapped_paths "$project" "$framework"
+
+  echo "== $framework, the C# examples of the agent skill (TUnit $tunit_latest)"
+  project="$work/$framework/skill"
+  create_project "$project" "$framework" TheDotSide.Carbonite.TUnit "$tunit_latest"
+  extract_skill_examples "$project"
+  git -C "$project" add -A && git -C "$project" -c user.name=smoke -c user.email=smoke@example.invalid commit -q -m smoke
+  # Like an agent following the skill: the first run creates the snapshots, then CI compares them.
+  run "$project" "$framework-skill-create" pass
+  run "$project" "$framework-skill-ci" pass CI=true
 done
 
 echo "Package smoke test passed for $version ($frameworks; TUnit $tunit_versions)."
