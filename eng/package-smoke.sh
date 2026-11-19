@@ -9,7 +9,7 @@
 #   4. a changed value fails with a diff and a received file.
 #
 # Usage: eng/package-smoke.sh [version]   (run eng/pack.sh first)
-# CARBONITE_FRAMEWORKS="net10.0" limits the frameworks, for a machine without the .NET 11 SDK.
+# CARBONITE_FRAMEWORKS="net11.0" limits the frameworks, for example without the .NET 10 runtime.
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

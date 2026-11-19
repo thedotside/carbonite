@@ -11,7 +11,7 @@ Carbonite is a snapshot testing library for beginners: one line, explicit errors
 
 Target .NET 10 and .NET 11. Build with the SDK of `global.json` and install the .NET 10 runtime too to run both test frameworks: `dotnet build`, `dotnet test`. Run the tests with `CI=true` before pushing: CI runs in strict mode with `ContinuousIntegrationBuild=true` (source paths become `/_/…`). Snapshot files are committed: review every created or changed `*.verified.*` file; never commit `*.received.*`. Test code that formats text itself must use the invariant culture.
 
-For packaging changes, run `eng/pack.sh`, then `eng/package-smoke.sh` (throwaway consumer projects through the whole lifecycle, with an isolated NuGet cache). `CARBONITE_FRAMEWORKS=net10.0` limits both scripts to one framework on a machine without the .NET 11 SDK. Do not publish packages or push changes unless requested.
+For packaging changes, run `eng/pack.sh`, then `eng/package-smoke.sh` (throwaway consumer projects through the whole lifecycle, with an isolated NuGet cache). `CARBONITE_FRAMEWORKS=net11.0` limits both scripts to one framework, for example on a machine without the .NET 10 runtime; the repository still needs the SDK of `global.json`. Do not publish packages or push changes unless requested.
 
 # Formatting and analysis
 
