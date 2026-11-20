@@ -103,7 +103,7 @@ If the new value is correct, accept it, then review the change in your pull requ
   - replace the verified file with the received file, or
   - run the tests again with SNAPSHOT_UPDATE=1:
       bash, zsh:   SNAPSHOT_UPDATE=1 dotnet test
-      PowerShell:  $env:SNAPSHOT_UPDATE=1; dotnet test
+      PowerShell:  $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 
 at Assert.That(new { … }).MatchesSnapshot()
 ```
@@ -373,11 +373,10 @@ Avec bash ou zsh :
 SNAPSHOT_UPDATE=1 dotnet test --treenode-filter "/*/*/FactureTests/*"
 ```
 
-Avec PowerShell :
+Avec PowerShell, sous une forme qui retire la variable même si les tests échouent :
 
 ```powershell
-$env:SNAPSHOT_UPDATE=1; dotnet test --treenode-filter "/*/*/FactureTests/*"
-Remove-Item Env:SNAPSHOT_UPDATE
+$env:SNAPSHOT_UPDATE=1; try { dotnet test --treenode-filter "/*/*/FactureTests/*" } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 ```
 
 ---

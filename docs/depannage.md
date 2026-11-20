@@ -219,7 +219,7 @@ Carbonite: the TUnit adapter could not be loaded (<raison>). Snapshots use the g
 
 | Cause | Exemple | Correction |
 | --- | --- | --- |
-| Un ordre non garanti | un ensemble d'objets (`HashSet<Client>`), une requête sans tri, des résultats de tâches parallèles | Triez avant de vérifier : `.OrderBy(c => c.Nom)`. |
+| Un ordre non garanti | une liste remplie dans un ordre qui varie, une requête sans tri, des résultats de tâches parallèles | Triez avant de vérifier : `.OrderBy(c => c.Nom)`. Les ensembles (`HashSet<T>`, tout `ISet<T>`) n'en ont pas besoin : Carbonite les trie déjà (voir [Format des fichiers](format.md#collections)). |
 | Une valeur tirée au hasard | un jeton, un mot de passe généré, `Random` | `ScrubMember("Jeton")`, ou une valeur fixe injectée par le test. |
 | Une date ou une heure non remplacée | `DateOnly`, `TimeOnly`, `TimeSpan`, une date dans une chaîne, `DontScrubDates()` | Une horloge fixe (`TimeProvider`), `ScrubMember` ou `Scrub`. |
 | Un Guid dans une chaîne | `"commande c4c4ea33-…"` | `Scrub` avec un motif de Guid (voir [Valeurs dynamiques](valeurs-dynamiques.md#remplacer-du-texte--scrubmotif-remplacement)). |
@@ -285,12 +285,12 @@ Pour voir le problème avant de pousser, lancez `CI=true dotnet test` (bash, zsh
 
 - Une variable de CI est définie sur votre poste, par exemple `CI=true` dans votre profil de shell ou dans la configuration de votre IDE. Carbonite se croit en CI et ignore la mise à jour ; le message le dit (`SNAPSHOT_UPDATE is ignored on continuous integration`).
 - La valeur n'est pas reconnue. Carbonite accepte `1`, `true`, `yes` et `on`, sans tenir compte de la casse.
-- La syntaxe ne correspond pas au shell : `SNAPSHOT_UPDATE=1 dotnet test` ne fonctionne pas en PowerShell. Utilisez `$env:SNAPSHOT_UPDATE=1; dotnet test`.
+- La syntaxe ne correspond pas au shell : `SNAPSHOT_UPDATE=1 dotnet test` ne fonctionne pas en PowerShell. Utilisez `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }`.
 - Deux valeurs visent le même snapshot : la mise à jour est refusée (`Snapshot conflict`).
 
 ### Les snapshots se mettent à jour tout seuls
 
-**Cause.** Dans une session PowerShell, `$env:SNAPSHOT_UPDATE=1` reste défini jusqu'à la fermeture du terminal. Chaque `dotnet test` réécrit alors les références qui diffèrent, et la sortie des tests indique `Carbonite updated the snapshot …`. Une configuration d'exécution de l'IDE qui définit la variable a le même effet.
+**Cause.** Dans une session PowerShell, `$env:SNAPSHOT_UPDATE=1` reste défini jusqu'à la fermeture du terminal si rien ne le retire, par exemple quand il est lancé sans la forme `try { … } finally { Remove-Item Env:SNAPSHOT_UPDATE }`. Chaque `dotnet test` réécrit alors les références qui diffèrent, et la sortie des tests indique `Carbonite updated the snapshot …`. Une configuration d'exécution de l'IDE qui définit la variable a le même effet.
 
 **Correction.** Retirez la variable, `Remove-Item Env:SNAPSHOT_UPDATE`, puis relisez avec `git diff` les références modifiées.
 

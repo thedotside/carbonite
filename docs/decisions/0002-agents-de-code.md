@@ -113,10 +113,12 @@ CI. `docs/agents.md` y renvoie : il n'existe qu'une copie du bloc.
 
 - La CI lance les validateurs officiels : `claude plugin validate --strict .`, dans une version
   épinglée, et `gh skill publish --dry-run`, qui valide sans rien publier.
-- `eng/check-agents.sh`, lancé aussi par la CI, vérifie trois points :
+- `eng/check-agents.sh`, lancé aussi par la CI, vérifie quatre points :
   - la `version` de `plugin.json` est celle de `Directory.Build.props` ;
   - aucun composant de plugin n'est suivi à la racine du dépôt, qui est la racine du plugin
     (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) ;
+  - hors de `tests/`, aucun fichier suivi ne lance `dotnet test` en PowerShell après avoir défini
+    `SNAPSHOT_UPDATE` sans le retirer : la variable resterait active pour toute la session ;
   - chaque bloc de code du skill porte une étiquette connue.
 - `eng/package-smoke.sh` compile et exécute chaque bloc ` ```csharp ` du skill contre les paquets,
   d'abord comme sur un poste de développeur (création), puis en mode CI (comparaison).

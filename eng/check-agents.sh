@@ -3,6 +3,9 @@
 #   - the plugin version is the package version of Directory.Build.props;
 #   - no plugin component is tracked at the repository root, which is the root of the carbonite
 #     plugin: it would ship code or configuration to every user of the plugin;
+#   - no tracked file outside tests/ runs dotnet test in PowerShell after setting SNAPSHOT_UPDATE
+#     without removing it: PowerShell keeps the variable for the session, and every later
+#     dotnet test would rewrite the snapshots that differ;
 #   - every code block of the skill has a known tag (eng/skill-examples.sh).
 # CI then runs the official validators: gh skill publish --dry-run . and
 # claude plugin validate --strict .
@@ -28,6 +31,12 @@ for path in .mcp.json mcp.json .github/mcp.json .lsp.json lsp.json .github/lsp.j
     problem "$path: the repository root is the root of the carbonite plugin, so this would reach every user of the plugin. Keep plugin components out of the root."
   fi
 done
+
+# Agents and readers copy these commands from the skill, the README and the guide. The tests keep
+# the old form as a counterexample.
+while IFS= read -r place; do
+  problem "$place: this PowerShell command leaves SNAPSHOT_UPDATE set for the session. Use the form that removes it, even when the tests fail: \$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }"
+done < <(git grep -n -I -i -E '\$env:SNAPSHOT_UPDATE[^;]*;[[:space:]]*dotnet' -- . ':(exclude)tests' | cut -d: -f1,2)
 
 examples="$(mktemp -d)"
 trap 'rm -rf "$examples"' EXIT
