@@ -89,7 +89,7 @@ npx commitlint --from origin/main --to HEAD --verbose
 | `tests/TheDotSide.Carbonite.TUnit.Tests/` | Les tests de l'adaptateur TUnit. |
 | `samples/Sample.Facturation.Tests/` | L'exemple de facturation cité par cette documentation. |
 | `eng/` | `setup.sh`, `pack.sh` et `package-smoke.sh` ; `check-agents.sh` et `skill-examples.sh` pour le skill. |
-| `skills/carbonite/` | Le skill pour les agents de code des utilisateurs (voir [Agents de code](agents.md)). |
+| `skills/carbonite/` | Le skill pour les agents de code des utilisateurs (voir [Agents de code](agents-de-code.md)). |
 | `.claude-plugin/` | La marketplace et le plugin `carbonite@carbonite`, pour Claude Code et Copilot CLI. |
 | `docs/` | Cette documentation ; `docs/decisions/` contient les décisions de conception. |
 | `.github/workflows/`, `pipelines/build/` | La CI et la publication. |
@@ -158,9 +158,10 @@ Le SDK .NET 11 reste nécessaire pour compiler le dépôt et fabriquer les paque
 - `skills/carbonite` décrit aux agents de code le comportement de `main`, comme le README. Changez-le dans le même commit qu'une API publique, un message d'échec, une variable d'environnement ou une règle de nommage.
 - Chaque bloc ` ```csharp ` du skill est un fichier complet, que `eng/package-smoke.sh` compile et exécute contre les paquets. Les extraits plus courts restent du code en ligne. Les autres blocs portent une étiquette connue (`bash`, `yaml`, `text`…) : `eng/skill-examples.sh` refuse les autres, pour qu'une faute de frappe ne sorte pas un exemple du contrôle.
 - La `version` de `.claude-plugin/plugin.json` est la `<Version>` de `Directory.Build.props` : changez les deux ensemble.
+- Ne nommez aucun fichier `agents.md`, `claude.md` ou `gemini.md` dans une autre casse que `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md`. macOS et Windows ignorent la casse : les agents de code y liraient les instructions du dossier.
 - La racine du dépôt est la racine du plugin. N'y ajoutez aucun composant de plugin (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) : il atteindrait chaque utilisateur du plugin.
 - Partout hors de `tests/`, une commande PowerShell qui définit `SNAPSHOT_UPDATE` le retire, même si les tests échouent : `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }`. PowerShell garde la variable pour toute la session, et les agents copient ces commandes depuis le skill, le README et le guide.
-- Vérifiez avec `eng/check-agents.sh` (version, racine, forme PowerShell, étiquettes des blocs), `claude plugin validate --strict .` et `gh skill publish --dry-run .`. Le job `agents` de la CI lance les trois.
+- Vérifiez avec `eng/check-agents.sh` (version, noms de fichiers, racine, forme PowerShell, étiquettes des blocs), `claude plugin validate --strict .` et `gh skill publish --dry-run .`. Le job `agents` de la CI lance les trois.
 
 ## CI, publication et décisions
 

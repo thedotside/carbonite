@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Checks what the repository gives to coding agents, without building anything:
 #   - the plugin version is the package version of Directory.Build.props;
+#   - no tracked file is named agents.md, claude.md or gemini.md in another letter case than
+#     AGENTS.md, CLAUDE.md or GEMINI.md: macOS and Windows ignore case, so coding agents would
+#     read it as the instructions of its folder;
 #   - no plugin component is tracked at the repository root, which is the root of the carbonite
 #     plugin: it would ship code or configuration to every user of the plugin;
 #   - no tracked file outside tests/ runs dotnet test in PowerShell after setting SNAPSHOT_UPDATE
@@ -23,6 +26,14 @@ plugin="$(sed -n 's:.*"version"[[:space:]]*\:[[:space:]]*"\([^"]*\)".*:\1:p' .cl
 if [[ "$plugin" != "$package" ]]; then
   problem ".claude-plugin/plugin.json: version is '$plugin' but Directory.Build.props says '$package': change both together."
 fi
+
+# Coding agents look in each folder for AGENTS.md, CLAUDE.md or GEMINI.md. On macOS and Windows,
+# which ignore letter case, they also find a page named agents.md or Claude.md.
+while IFS= read -r path; do
+  name="${path##*/}"
+  canonical="$(printf '%s' "${name%.*}" | tr '[:lower:]' '[:upper:]').md"
+  problem "$path: macOS and Windows ignore letter case, so coding agents read this file as ${path%"$name"}$canonical, the instructions of its folder. Rename it."
+done < <(git ls-files | grep -i -E '(^|/)(agents|claude|gemini)\.md$' | grep -v -E '(^|/)(AGENTS|CLAUDE|GEMINI)\.md$')
 
 # What Claude Code and Copilot CLI load from the root of a plugin, besides skills/.
 for path in .mcp.json mcp.json .github/mcp.json .lsp.json lsp.json .github/lsp.json hooks.json hooks \
