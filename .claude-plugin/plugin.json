@@ -6,7 +6,7 @@
     "name": "The Dot Side",
     "url": "https://github.com/thedotside"
   },
-  "homepage": "https://github.com/thedotside/carbonite/blob/main/docs/agents.md",
+  "homepage": "https://github.com/thedotside/carbonite/blob/main/docs/agents-de-code.md",
   "repository": "https://github.com/thedotside/carbonite",
   "license": "MIT",
   "keywords": ["dotnet", "csharp", "testing", "snapshot-testing", "tunit", "xunit", "nunit", "mstest"]

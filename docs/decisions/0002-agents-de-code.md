@@ -107,14 +107,17 @@ le skill de chaque nouvelle version de Carbonite.
 Le README donne un bloc court à coller dans `AGENTS.md`, `CLAUDE.md` ou
 `.github/copilot-instructions.md`. Il contient les paquets et leurs namespaces, l'API, la règle de
 relecture, une forme PowerShell qui retire `SNAPSHOT_UPDATE` après usage, et le comportement en
-CI. `docs/agents.md` y renvoie : il n'existe qu'une copie du bloc.
+CI. `docs/agents-de-code.md` y renvoie : il n'existe qu'une copie du bloc.
 
 ### Garde-fous
 
 - La CI lance les validateurs officiels : `claude plugin validate --strict .`, dans une version
   épinglée, et `gh skill publish --dry-run`, qui valide sans rien publier.
-- `eng/check-agents.sh`, lancé aussi par la CI, vérifie trois points :
+- `eng/check-agents.sh`, lancé aussi par la CI, vérifie que :
   - la `version` de `plugin.json` est celle de `Directory.Build.props` ;
+  - aucun fichier suivi ne s'appelle `agents.md`, `claude.md` ou `gemini.md` dans une autre casse
+    que `AGENTS.md`, `CLAUDE.md` ou `GEMINI.md` : macOS et Windows ignorent la casse, et les agents
+    de code y liraient les instructions du dossier (d'où le nom de `docs/agents-de-code.md`) ;
   - aucun composant de plugin n'est suivi à la racine du dépôt, qui est la racine du plugin
     (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) ;
   - chaque bloc de code du skill porte une étiquette connue.

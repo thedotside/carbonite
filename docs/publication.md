@@ -25,7 +25,7 @@ Cette page décrit comment une version de Carbonite est numérotée, vérifiée 
 3. Le workflow `publish-nuget` (`.github/workflows/publish.yml`) démarre :
    - le job `verify` rejoue toute la chaîne de la CI avec la version de l'étiquette : formatage, compilation, tests des deux frameworks, paquets, essais dans des projets consommateurs. Il vérifie aussi que l'étiquette pointe sur un commit de `main` et que l'entrée du changelog est datée ;
    - le job `publish` attend l'approbation d'un relecteur de l'environnement `nuget`, s'authentifie auprès de NuGet par OIDC (aucune clé n'est stockée), puis pousse le cœur, ensuite l'adaptateur. Les symboles (`.snupkg`) partent avec chaque paquet.
-4. Une fois les paquets publiés, créez la release GitHub de l'étiquette : `gh skill install` installe le skill de la dernière release (voir [Agents de code](agents.md)).
+4. Une fois les paquets publiés, créez la release GitHub de l'étiquette : `gh skill install` installe le skill de la dernière release (voir [Agents de code](agents-de-code.md)).
 
    ```bash
    gh release create 0.1.0 --verify-tag --generate-notes

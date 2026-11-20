@@ -27,7 +27,7 @@ Carbonite vise d'abord les développeurs qui débutent. Les messages d'erreur di
 | [Format des fichiers](format.md) | Toutes les règles d'écriture des snapshots, en tableaux. |
 | [CI](ci.md) | Mode strict, builds déterministes, artefacts, culture et fins de ligne. |
 | [Dépannage](depannage.md) | Chaque message d'erreur ou symptôme : la cause, puis la correction. |
-| [Agents de code](agents.md) | Donner les règles de Carbonite à Claude Code, Copilot, Codex ou Cursor : le skill, et un bloc pour `AGENTS.md`. |
+| [Agents de code](agents-de-code.md) | Donner les règles de Carbonite à Claude Code, Copilot, Codex ou Cursor : le skill, et un bloc pour `AGENTS.md`. |
 | [Développement](developpement.md) | Contribuer à Carbonite : outils, commandes, organisation du dépôt. |
 
 Pour aller plus loin : la [décision de conception](decisions/0001-conception.md), et la [publication sur NuGet](publication.md) pour les mainteneurs.
