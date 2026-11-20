@@ -59,7 +59,14 @@ public class SnapshotEngineTests
         await Assert.That(message).Contains(harness.Verified());
         await Assert.That(message).Contains(harness.Received());
         await Assert.That(message).Contains("SNAPSHOT_UPDATE=1 dotnet test");
-        await Assert.That(message).Contains("$env:SNAPSHOT_UPDATE=1; dotnet test");
+        // PowerShell keeps $env: variables for the whole session: the command must remove it,
+        // or every later dotnet test would rewrite the snapshots that differ, silently.
+        await Assert
+            .That(message)
+            .Contains(
+                "PowerShell:  $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }"
+            );
+        await Assert.That(message).DoesNotContain("$env:SNAPSHOT_UPDATE=1; dotnet test");
     }
 
     [Test]

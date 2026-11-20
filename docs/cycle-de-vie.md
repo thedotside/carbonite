@@ -110,7 +110,7 @@ If the new value is correct, accept it, then review the change in your pull requ
   - replace the verified file with the received file, or
   - run the tests again with SNAPSHOT_UPDATE=1:
       bash, zsh:   SNAPSHOT_UPDATE=1 dotnet test
-      PowerShell:  $env:SNAPSHOT_UPDATE=1; dotnet test
+      PowerShell:  $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 ```
 
 Comment le lire :
@@ -145,11 +145,10 @@ Avec bash ou zsh, la variable ne vaut que pour cette commande :
 SNAPSHOT_UPDATE=1 dotnet test
 ```
 
-Avec PowerShell, la variable reste définie pour toute la session : tant qu'elle existe, chaque `dotnet test` réécrit les références qui diffèrent. Retirez-la juste après :
+Avec PowerShell, la variable resterait définie pour toute la session : tant qu'elle existe, chaque `dotnet test` réécrit les références qui diffèrent. Cette forme la retire, même si les tests échouent :
 
 ```powershell
-$env:SNAPSHOT_UPDATE=1; dotnet test
-Remove-Item Env:SNAPSHOT_UPDATE
+$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
 ```
 
 Carbonite accepte les valeurs `1`, `true`, `yes` et `on`, sans tenir compte de la casse. Toute autre valeur est ignorée.

@@ -120,6 +120,8 @@ CI. `docs/agents-de-code.md` y renvoie : il n'existe qu'une copie du bloc.
     de code y liraient les instructions du dossier (d'où le nom de `docs/agents-de-code.md`) ;
   - aucun composant de plugin n'est suivi à la racine du dépôt, qui est la racine du plugin
     (`.mcp.json`, `hooks/`, `agents/`, `commands/`…) ;
+  - hors de `tests/`, aucun fichier suivi ne lance `dotnet test` en PowerShell après avoir défini
+    `SNAPSHOT_UPDATE` sans le retirer : la variable resterait active pour toute la session ;
   - chaque bloc de code du skill porte une étiquette connue.
 - `eng/package-smoke.sh` compile et exécute chaque bloc ` ```csharp ` du skill contre les paquets,
   d'abord comme sur un poste de développeur (création), puis en mode CI (comparaison).

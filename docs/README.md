@@ -64,11 +64,10 @@ Pour aller plus loin : la [décision de conception](decisions/0001-conception.md
    SNAPSHOT_UPDATE=1 dotnet test
    ```
 
-   Avec PowerShell, retirez ensuite la variable, sinon elle reste active pour toute la session :
+   Avec PowerShell, la variable resterait active pour toute la session. Cette forme la retire, même si les tests échouent :
 
    ```powershell
-   $env:SNAPSHOT_UPDATE=1; dotnet test
-   Remove-Item Env:SNAPSHOT_UPDATE
+   $env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }
    ```
 
 5. Relisez la modification du fichier `.verified.json` dans votre pull request : ce diff est la relecture du changement.

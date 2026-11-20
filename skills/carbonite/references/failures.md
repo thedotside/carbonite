@@ -100,7 +100,7 @@ Check in this order: the snapshot is committed; the text does not depend on the 
 
 ### SNAPSHOT_UPDATE has no effect
 
-A CI variable is set in the shell or the IDE (the message says `SNAPSHOT_UPDATE is ignored on continuous integration`); the value is not `1`, `true`, `yes` or `on`; the syntax does not match the shell (PowerShell needs `$env:SNAPSHOT_UPDATE=1; dotnet test`); or two values target one file (`Snapshot conflict`).
+A CI variable is set in the shell or the IDE (the message says `SNAPSHOT_UPDATE is ignored on continuous integration`); the value is not `1`, `true`, `yes` or `on`; the syntax does not match the shell (PowerShell needs `$env:SNAPSHOT_UPDATE=1; try { dotnet test } finally { Remove-Item Env:SNAPSHOT_UPDATE }`); or two values target one file (`Snapshot conflict`).
 
 ### Snapshots update by themselves
 
