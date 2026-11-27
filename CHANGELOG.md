@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.2.0 - Unreleased
+
 ## 0.1.0 - 2026-11-27
 
 - First version of `TheDotSide.Carbonite` for .NET 10 and .NET 11: `Snapshot.Match(value)` compares any value with a snapshot file stored in `__snapshots__` next to the test.
