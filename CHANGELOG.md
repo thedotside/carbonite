@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-11-27
 
 - First version of `TheDotSide.Carbonite` for .NET 10 and .NET 11: `Snapshot.Match(value)` compares any value with a snapshot file stored in `__snapshots__` next to the test.
 - Deterministic, culture-invariant JSON for objects and raw text for strings: members of the runtime type in declaration order, sorted dictionaries and unordered sets, invariant numbers and ISO 8601 dates, readable non-ASCII text, LF line endings.
