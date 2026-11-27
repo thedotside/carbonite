@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
     <!-- The next unreleased version: bump it right after tagging a release. -->
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>The Dot Side</Authors>
     <Company>The Dot Side</Company>
     <Copyright>Copyright (c) 2026 The Dot Side</Copyright>
